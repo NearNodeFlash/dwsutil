@@ -146,9 +146,9 @@ $ ./dwsutil.py --operation get -n wfr-demo
 
 **Assign resources to a Workflow resource**
 NOTE: This will use cluster inventory unless overridden with an inventory file**
-`
+```
 $ ./dwsutil.py --operation assignresources -n wfr-demo
-`
+```
 ```json
 {
     "action": "assignresources",
@@ -170,9 +170,9 @@ $ ./dwsutil.py --operation assignresources -n wfr-demo
 
 **Progress a Workflow to the next desiredState**
 NOTE: Workflow will not progress if it is not in a Ready state
-`
+```
 $ ./dwsutil.py --operation progress -n wfr-demo
-`
+```
 ```json
 {
     "action": "progress",
@@ -188,9 +188,9 @@ $ ./dwsutil.py --operation progress -n wfr-demo
 ```
 
 **Progress a Workflow directly to the teardown desiredState**
-`
+```
 $ ./dwsutil.py --operation progressteardown -n wfr-demo
-`
+```
 ```json
 {
     "action": "progress",
@@ -206,9 +206,9 @@ $ ./dwsutil.py --operation progressteardown -n wfr-demo
 ```
 **Delete a Workflow**
 NOTE: A Workflow must be in a teardown state to be deleted
-`
+```
 $ ./dwsutil.py --operation delete -n wfr-demo
-`
+```
 ```json
 {
     "action": "delete",
@@ -223,9 +223,9 @@ $ ./dwsutil.py --operation delete -n wfr-demo
 ```
 
 **Display cluster inventory**
-`
+```
 $ ./dwsutil.py --context inventory --operation show
-`
+```
 ```json
 {
     "nnfnodes": [
