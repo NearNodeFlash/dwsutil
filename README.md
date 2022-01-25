@@ -26,7 +26,7 @@ NOTE: This approach is based on venv and always requires you to source venv/bin/
 
 
 ```
-$ git clone from_some_where ; cd dwsutil
+$ git clone git@github.hpe.com:hpe/hpc-rabsw-dwsutil.git ; cd hpc-rabsw-dwsutil
 
 $ python3 -m venv venv
 
