@@ -1,0 +1,55 @@
+system:
+  nnf-nodes:
+    - metadata:
+        namespace: kind-worker
+        desc: A rabbit worker with a bogus name assigned by kind and pretty much unchangable
+      spec:
+        name: kind-worker
+      status:
+        capacity: 39582418599936
+        status: Ready
+        servers:
+          - { health: OK, id: 10111, name: Rabbit, status: Ready }
+          - { health: OK, id: 1011, name: kind-worker, status: Ready }
+          - { health: OK, id: 101, name: x0c1cn01, status: Ready }
+          - { health: OK, id: 102, name: x0c1cn02, status: Ready }
+          - { health: OK, id: 103, name: x0c1cn03, status: Ready }
+          - { health: OK, id: 104, name: x0c1cn04, status: Ready }
+          - { health: OK, id: 105, name: x0c1cn05, status: Ready }
+          - { health: OK, id: 106, name: x0c1cn06, status: Ready }
+          - { health: OK, id: 107, name: x0c1cn07, status: Ready }
+          - { health: OK, id: 108, name: x0c1cn08, status: Ready }
+          - { health: OK, id: 109, name: x0c1cn09, status: Ready }
+          - { health: OK, id: 110, name: x0c1cn10, status: Ready }
+          - { health: OK, id: 111, name: x0c1cn11, status: Ready }
+          - { health: OK, id: 112, name: x0c1cn12, status: Ready }
+          - { health: OK, id: 113, name: x0c1cn13, status: Ready }
+          - { health: OK, id: 114, name: x0c1cn14, status: Ready }
+          - { health: OK, id: 115, name: x0c1cn15, status: Ready }
+          - { health: OK, id: 116, name: x0c1cn16, status: Ready }
+    - metadata:
+        namespace: kind-worker2
+        desc: Another rabbit worker with a bogus name assigned by kind and pretty much unchangable
+      spec:
+        name: kind-worker2
+      status:
+        capacity: 39582418599936
+        status: Ready
+        servers:
+          - { health: OK, id: 201, name: x0c2cn01, status: Ready }
+          - { health: OK, id: 202, name: x0c2cn02, status: Ready }
+          - { health: OK, id: 203, name: x0c2cn03, status: Ready }
+          - { health: OK, id: 204, name: x0c2cn04, status: Ready }
+          - { health: OK, id: 205, name: x0c2cn05, status: Ready }
+          - { health: OK, id: 206, name: x0c2cn06, status: Ready }
+          - { health: OK, id: 207, name: x0c2cn07, status: Ready }
+          - { health: OK, id: 208, name: x0c2cn08, status: Ready }
+          - { health: OK, id: 209, name: x0c2cn09, status: Ready }
+          - { health: OK, id: 210, name: x0c2cn10, status: Ready }
+          - { health: OK, id: 211, name: x0c2cn11, status: Ready }
+          - { health: OK, id: 212, name: x0c2cn12, status: Ready }
+          - { health: OK, id: 213, name: x0c2cn13, status: Ready }
+          - { health: OK, id: 214, name: x0c2cn14, status: Ready }
+          - { health: OK, id: 215, name: x0c2cn15, status: Ready }
+          - { health: OK, id: 216, name: x0c2cn16, status: Ready }
+

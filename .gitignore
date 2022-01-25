@@ -1,0 +1,6 @@
+__pycache__
+.vscode
+*.pyc
+*.save
+vm-kube.cfg
+venv/
