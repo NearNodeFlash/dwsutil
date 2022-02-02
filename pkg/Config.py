@@ -11,7 +11,6 @@
 
 import json
 import yaml
-import sys
 import os
 
 from .Console import Console
@@ -22,8 +21,9 @@ class Config:
     K8S_GROUP = "dws.cray.hpe.com"
     K8S_VERSION = "v1alpha1"
 
-    def __init__(self):
+    def __init__(self, argv):
         self.version_string = "DWS Utility - Version 0.1"
+        self.argv = argv
         self.munge = False
         self.compute_munge = False
         self.force = False
@@ -38,6 +38,10 @@ class Config:
         self.config_file_source = None
         self.k8s_config = ""
         self.k8s_config_source = None
+        self.k8s_default = ""
+        self.k8s_active_context = ""
+        self.k8s_active_context_source = None
+        self.k8s_contexts = []
         self.wfr_name = ""
         self.wfr_name_source = "default"
         self.job_id = 5555
@@ -127,6 +131,7 @@ class Config:
         self.output_usage_item("-i/--inventory <inventoryfile>", "Override cluster inventory for the simulator using the file provided")
         self.output_usage_item("-j/--jobid <job_id>", "Specify the job id to be used in the Workflow Resource")
         self.output_usage_item("-k/--kcfg <configfile>", "Specify kubernetes configuration file")
+        self.output_usage_item("-kctx <context>", "Kubernetes context to use")
         self.output_usage_item("--munge", "Automatically add process id to the workflow resource name, default is not to munge")
         self.output_usage_item("--mungecompute", "Munge compute names if they are named 'Compute x', default is not to munge")
         self.output_usage_item("-n/--name <wfr_name>", "Specify the name of the Workflow Resource")
@@ -199,21 +204,11 @@ class Config:
         Nothing
         """
 
-        if self.k8s_config != "" and (self.dwshost != "" or self.dwsport != ""):
-            self.usage("Please specify either or Kubernetes config file OR a dws host/port combination")
-
         if self.k8s_config != "":
             if not os.path.exists(self.k8s_config):
                 self.usage(f"Kubernetes configuration file '{self.k8s_config}' does not exist")
-        else:
-            if "KUBECONFIG" not in os.environ:
-                self.usage("Kubernetes configuration file not specified and KUBECONFIG env var not defined")
-            else:
-                self.k8s_config = os.environ["KUBECONFIG"]
-                if not os.path.exists(self.k8s_config):
-                    self.usage(f"Kubernetes configuration file '{self.k8s_config}' specified by KUBECONFIG does not exist")
 
-        if self.context == "WFR" and self.operation in ["CREATE", "ASSIGNRESOURCES", "DELETE", "PROGRESS", "PROGRESSTEARDOWN"]:
+        if self.context == "WFR" and self.operation in ["CREATE", "GET", "ASSIGNRESOURCES", "DELETE", "PROGRESS", "PROGRESSTEARDOWN"]:
             if self.wfr_name is None or self.wfr_name.strip() == '':
                 self.usage(f"Workflow name is required for operation {self.operation}")
 
@@ -260,9 +255,10 @@ class Config:
         self.output_config_item("config file", self.config_file, self.config_file_source)
         if self.k8s_config != "":
             self.output_config_item("k8s config file", self.k8s_config, self.k8s_config_source)
-        if self.dwshost != "" or self.dwsport != "":
-            self.output_config_item("dws host", self.dwshost)
-            self.output_config_item("dws port", self.dwsport)
+        if self.k8s_active_context != "":
+            self.output_config_item("K8S default", self.k8s_default)
+            self.output_config_item("Available contexts", self.k8s_contexts)
+            self.output_config_item("Using K8S context", self.k8s_active_context, self.k8s_active_context_source)
 
         if init_flags_only:
             return
@@ -305,9 +301,9 @@ class Config:
 
         """
 
-        if index >= len(sys.argv):
+        if index >= len(self.argv):
             return None, 0
-        return sys.argv[index], index+1
+        return self.argv[index], index+1
 
     def process_commandline(self, init_flags_only=True):
         """Process the command line.
@@ -409,6 +405,15 @@ class Config:
 
                 continue
 
+            if arg in ["-kctx"]:
+                arg, aidx = self.get_arg(aidx)
+                if arg is None:
+                    self.usage("A kubernetes context must be specified with the -kctx   e.g. -kctx dp1b")
+                self.k8s_active_context = arg
+                self.k8s_active_context_source = "CLI"
+
+                continue
+
             if arg in ["-n", "--name"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
@@ -490,7 +495,7 @@ class Config:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
                     self.usage("A User id name must be specified with -n   e.g. -u 1001")
-                self.job_id = int(arg)
+                self.user_id = int(arg)
                 continue
 
             if arg in ["--showconfig"]:
@@ -600,13 +605,9 @@ class Config:
 
         # The dwsutil config file isn't necessary if we can find a kube config
         if self.config_file == "" or self.config_file is None:
-            Console.debug(Console.MIN, "No config file, looking for k8s cfg")
-            self.resolve_k8s_config()
-            Console.debug(Console.MIN, "dwsutil config file not set")
-
+            Console.debug(Console.MIN, "No config file specified and no default config file present")
         elif not os.path.exists(self.config_file):
             self.usage(f"{self.long_name} configuration file '{self.config_file}' does not exist")
-            exit(-1)
         else:
             with open(self.config_file) as file:
                 cfg = yaml.safe_load(file)
@@ -616,7 +617,12 @@ class Config:
                     Console.debug(Console.MIN, "Using kube config from config")
                     self.k8s_config_source = "Config file"
                 else:
-                    self.resolve_k8s_config()
+                    Console.debug(Console.MIN, "No kubernetes config specified in config file")
+
+                kctx = self.get_config_entry(cfg, "k8s", "context", None)
+                if kctx is not None:
+                    self.k8s_active_context = kctx
+                    self.k8s_active_context_source = "Config file"
 
                 self.inventory_file = self.get_config_entry(cfg, "config", "inventory", None)
                 if self.inventory_file is not None:

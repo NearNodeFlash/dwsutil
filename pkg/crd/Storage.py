@@ -5,6 +5,8 @@
 # © Copyright 2021 Hewlett Packard Enterprise Development LP
 #
 # -----------------------------------------------------------------
+import copy
+
 from ..Console import Console
 
 
@@ -13,8 +15,8 @@ class Storage:
     def __init__(self, raw_storage):
         with Console.trace_function():
             if not raw_storage:
-                raise "raw_storage is required"
-            self._raw_storage = raw_storage
+                raise Exception("raw_storage is required")
+            self._raw_storage = copy.deepcopy(raw_storage)
 
     @property
     def raw_storage(self):
@@ -24,7 +26,7 @@ class Storage:
     @raw_storage.setter
     def raw_storage(self, raw_storage):
         """Setter for the internal Storage json."""
-        self._raw_storage = raw_storage
+        self._raw_storage = copy.deepcopy(raw_storage)
 
     @property
     def name(self):
@@ -53,7 +55,7 @@ class Storage:
     def dump_summary(self):
         """Dump object summary to console."""
         Console.output("-------------------------------------")
-        print("Storage: "+self.raw_storage['metadata']['name'])
-        print(f"    Status: {self.raw_storage['data']['status']}")
-        print(f"    is_ready: {self.is_ready}")
-        print(f"    Capacity: {self.raw_storage['data']['capacity']} ({type(self.raw_storage['data']['capacity'])}")
+        Console.output("Storage: "+self.raw_storage['metadata']['name'])
+        Console.output(f"    Status: {self.raw_storage['data']['status']}")
+        Console.output(f"    is_ready: {self.is_ready}")
+        Console.output(f"    Capacity: {self.raw_storage['data']['capacity']} ({type(self.raw_storage['data']['capacity'])}")

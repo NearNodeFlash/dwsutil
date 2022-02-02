@@ -53,7 +53,7 @@ class DWSError(Exception):
             co_name = f_code.co_name
             filename = os.path.basename(f_code.co_filename)
             fcn = f"{filename}:{co_name}"
-        except Exception:
+        except Exception:  # pragma: no cover
             pass
         self.fcn = fcn
 
@@ -64,7 +64,7 @@ class DWSError(Exception):
         None
 
         Returns:
-        JSON dictionariy of DWSError properties
+        JSON dictionary of DWSError properties
         """
         return {"error": True, "message": self.message, "dwserrorcode": self.code, "function": self.fcn}
 
@@ -123,14 +123,16 @@ class DWS:
             crd_api = k8s_client.CustomObjectsApi()
             try:
                 nnfnode_list = crd_api.list_cluster_custom_object(group, version, "nnfnodes")
+                # Console.pretty_json(nnfnode_list)
                 for nnf_node in nnfnode_list['items']:
                     node_obj = Nnfnode(nnf_node, allow_compute_name_munge=allow_compute_name_munge)
                     if only_ready_nodes and not node_obj.is_ready:
                         Console.debug(Console.MIN, f"...nnf-node {node_obj.name}"
                                                    " is not ready, skipping")
+                        continue
                     nnf_inventory[node_obj.name] = node_obj
                 return nnf_inventory
-            except k8s_client.exceptions.ApiException as err:
+            except k8s_client.exceptions.ApiException as err:  # pragma: no cover
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 
     # Storages Routines
@@ -152,7 +154,7 @@ class DWS:
                 for storage in storage_list['items']:
                     names.append(storage['metadata']['name'])
                 return names
-            except k8s_client.exceptions.ApiException as err:
+            except k8s_client.exceptions.ApiException as err:  # pragma: no cover
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 
     def storage_get(self, name, group="dws.cray.hpe.com", version="v1alpha1"):
@@ -169,7 +171,7 @@ class DWS:
             try:
                 crd = self.crd_get_raw("storages", name)
                 return Storage(crd)
-            except k8s_client.exceptions.ApiException as err:
+            except k8s_client.exceptions.ApiException as err:  # pragma: no cover
                 if err.status == 404:
                     msg = f"Storage named {name} was not found"
                     raise DWSError(msg, DWSError.DWS_NOTFOUND, err)
@@ -193,7 +195,7 @@ class DWS:
                 for storage_raw in storage_list['items']:
                     storages.append(Storage(storage_raw))
                 return storages
-            except k8s_client.exceptions.ApiException as err:
+            except k8s_client.exceptions.ApiException as err:  # pragma: no cover
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 
     # Workflow Resource Routines
@@ -215,7 +217,7 @@ class DWS:
                 for wfr in wfr_list['items']:
                     wfr_names.append(wfr['metadata']['name'])
                 return wfr_names
-            except k8s_client.exceptions.ApiException as err:
+            except k8s_client.exceptions.ApiException as err:  # pragma: no cover
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 
     def wfr_get_raw(self, wfrname, group="dws.cray.hpe.com", version="v1alpha1"):
@@ -250,6 +252,7 @@ class DWS:
         with Console.trace_function():
             try:
                 workflow = self.k8sapi.get_namespaced_custom_object(group, version, "default", "workflows", wfrname)
+                Console.debug(Console.WORDY, f"workflow: {workflow}")
                 return Workflow(workflow)
             except k8s_client.exceptions.ApiException as err:
                 if err.status == 404:
@@ -276,7 +279,7 @@ class DWS:
             else:
                 msg = f"Workflow Resource named '{wfrname}' must be in a state of 'teardown' to be deleted, current state is '{wfr.state}'"
                 raise DWSError(msg, DWSError.DWS_IMPROPERSTATE, None)
-        except k8s_client.exceptions.ApiException as err:
+        except k8s_client.exceptions.ApiException as err:  # pragma: no cover
             if err.status == 404:
                 msg = f"Workflow Resource named '{wfrname}' was not found"
                 raise DWSError(msg, DWSError.DWS_NOTFOUND, err)
@@ -300,10 +303,12 @@ class DWS:
         with Console.trace_function():
             body = Workflow.body_template(wfrname, wlmId, jobId, userId, dwdirectives, "proposal", group, version)
             Console.debug(Console.WORDY, body)
+            # Console.pretty_json(body)
             # TODO: Get rid of the new_client stuff
             with k8s_client.ApiClient() if not new_client else new_client as api_client:
                 try:
                     api_instance = k8s_client.CustomObjectsApi(api_client)
+                    # print(f"BODY: {body}")
                     api_response = api_instance.create_namespaced_custom_object("dws.cray.hpe.com", "v1alpha1", "default", "workflows", body)
                     Console.debug(Console.WORDY, api_response)
                     return Workflow(api_response)
@@ -326,10 +331,13 @@ class DWS:
 
         # TODO: Move to class obj
         states = ['proposal', 'setup', 'data_in', 'pre_run', 'post_run', 'data_out', 'teardown']
-        idx = states.index(state.lower())
-        if idx >= len(states)-1 or idx < 0:
-            return None
-        return states[idx+1]
+        try:
+            idx = states.index(state.lower())
+            if idx >= len(states)-1 or idx < 0:
+                return None
+            return states[idx+1]
+        except ValueError:
+            raise DWSError(f"Invalid state {state} specified", DWSError.DWS_GENERAL)
 
     def wfr_update_desired_state(self, wfrname, desiredState, force_update=False, group="dws.cray.hpe.com", version="v1alpha1"):
         """Update the desired state of the named Workflow CR.
@@ -433,7 +441,7 @@ class DWS:
                     breakdown = self.directivebreakdown_get(name)
                     breakdowns.append(breakdown)
                 return breakdowns
-            except k8s_client.exceptions.ApiException as err:
+            except k8s_client.exceptions.ApiException as err:  # pragma: no cover
                 if err.status == 404:
                     msg = f"DirectiveBreakdown named '{name}' was not found"
                     raise DWSError(msg, DWSError.DWS_NOTFOUND, err)

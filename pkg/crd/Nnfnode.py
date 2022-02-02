@@ -7,6 +7,7 @@
 # -----------------------------------------------------------------
 import math
 import re
+import copy
 
 from ..Console import Console
 
@@ -25,17 +26,17 @@ class Nnfnode:
                 raise(Exception("raw_nnfnode cannot be None"))
             if not all(key in raw_nnfnode for key in ('metadata', 'status')):
                 raise(Exception(
-                    "Inventory file is missing required 'metadata'/'status' fields for nnf-node"))
+                    "raw_nnfnode is missing required 'metadata'/'status' fields for nnf-node"))
             if 'namespace' not in raw_nnfnode['metadata']:
                 raise(
-                    Exception("Inventory file is missing required 'namespace' field for nnf-node"))
+                    Exception("raw_nnfnode is missing required 'namespace' field for nnf-node"))
             if 'name' not in raw_nnfnode['spec']:
                 raise(
-                    Exception("Inventory file is missing required 'name' field for nnf-node"))
+                    Exception("raw_nnfnode is missing required 'name' field for nnf-node"))
             if not all(key in raw_nnfnode['status'] for key in ('capacity', 'status', 'servers')):
                 raise(Exception(
-                    "Inventory file is missing required ''status' sub-fields for nnf-node"))
-            self._raw_nnfnode = raw_nnfnode
+                    "raw_nnfnode is missing required ''status' sub-fields for nnf-node"))
+            self._raw_nnfnode = copy.deepcopy(raw_nnfnode)
             self.remaining_storage = self.capacity
             self.allocationCount = 0
 
@@ -58,7 +59,7 @@ class Nnfnode:
     @raw_nnfnode.setter
     def raw_nnfnode(self, raw_nnfnode):
         """Setter for the internal Nnfnode json."""
-        self._raw_nnfnode = raw_nnfnode
+        self._raw_nnfnode = copy.deepcopy(raw_nnfnode)
 
     @property
     def namespace(self):
@@ -110,10 +111,10 @@ class Nnfnode:
     def dump_summary(self):
         """Dump object summary to console"""
         Console.output("-------------------------------------")
-        print("Storage: "+self._raw_nnfnode['metadata']['name'])
-        print(f"    Status: {self._raw_nnfnode['status']['status']}")
-        print(f"    is_ready: {self.is_ready}")
-        print(f"    Capacity: {self._raw_nnfnode['status']['capacity']}")
-        print(f"    Remaining Storage: {self.remainingStorage}")
-        print(f"    Allocations: {self.allocationCount}")
+        Console.output("Storage: "+self._raw_nnfnode['metadata']['name'])
+        Console.output(f"    Status: {self._raw_nnfnode['status']['status']}")
+        Console.output(f"    is_ready: {self.is_ready}")
+        Console.output(f"    Capacity: {self._raw_nnfnode['status']['capacity']}")
+        Console.output(f"    Remaining Storage: {self.remaining_storage}")
+        Console.output(f"    Allocations: {self.allocationCount}")
         # print(f"    Computes: {self.computes}")

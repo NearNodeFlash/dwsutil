@@ -7,7 +7,7 @@
 # © Copyright 2021 Hewlett Packard Enterprise Development LP
 #
 # -----------------------------------------------------------------
-
+import sys
 import yaml
 import re
 from functools import reduce
@@ -48,8 +48,11 @@ class DWSUtility:
                 self.config.output_config_item("DWS API Endpoint", host)
                 self.config.output_configuration()
 
+    def command_line_args():
+        return sys.argv
+
     def __init__(self, sim_folder):
-        self.config = Config()
+        self.config = Config(DWSUtility.command_line_args())
         self.wfr_queue = queue.Queue()
 
     def dump_config_as_json(self):
@@ -455,24 +458,63 @@ class DWSUtility:
         Console.pretty_json(json)
         return 0
 
+    def initialize_dws(self):
+        self.dws = DWS(self.config)
+
+    def initialize_run(self):
+        # Initialization
+        self.preamble(1)
+        # k8s config file specified on CLI or by dwsutility config
+        if self.config.k8s_config != "":
+            k8s_config.load_kube_config(self.config.k8s_config)
+        # No k8s config file specified, resolve by contexts
+        else:
+            Console.debug(Console.WORDY, "No k8s config, inspecting contexts")
+            contexts, active_context = k8s_config.list_kube_config_contexts()
+            Console.debug(Console.WORDY, f"Contexts: {contexts}")
+            if not contexts:
+                self.config.usage("No contexts found an no k8s config specifed")
+
+            contexts = [context['name'] for context in contexts]
+            active_index = contexts.index(active_context['name'])
+            active_context = contexts[active_index]
+            Console.debug(Console.WORDY, f"Contexts: {contexts}")
+            self.config.k8s_default = k8s_config.KUBE_CONFIG_DEFAULT_LOCATION
+            self.config.k8s_contexts = contexts
+
+            # If user has not specified a context, go after the default
+            if self.config.k8s_active_context == "":
+                self.config.k8s_active_context = active_context
+                self.config.k8s_active_context_source = "Default context"
+                Console.debug(Console.WORDY, f"Using active context: {active_context}")
+            # User specified a context, check it and use it
+            else:
+                if self.config.k8s_active_context not in contexts:
+                    self.config.usage(
+                        f"Specified context '{self.config.k8s_active_context}'"
+                        " not found.  Available contexts are "
+                        f"{contexts}.")
+
+                Console.debug(Console.WORDY, "Using specified context:"
+                              " {self.config.k8s_active_context}")
+
+            k8s_config.load_kube_config(
+                context=self.config.k8s_active_context)
+
+        self.preamble(2)
+
     def run(self):
         """Entrypoint for the DWSUtility class."""
         ret_code = 0
 
         try:
-            # Initialization
-            self.preamble(1)
-            if self.config.k8s_config != "":
-                k8s_config.load_kube_config(self.config.k8s_config)
-            else:
-                k8s_config.load_kube_config()
-            self.preamble(2)
+            self.initialize_run()
 
             # If user specified flag to only display the config, stop now
             if self.config.showconfigonly:
                 return
 
-            self.dws = DWS(self.config)
+            self.initialize_dws()
 
             # Process Workflow operations
             error_msg = None

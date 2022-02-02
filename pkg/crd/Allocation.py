@@ -5,6 +5,8 @@
 # © Copyright 2021 Hewlett Packard Enterprise Development LP
 #
 # -----------------------------------------------------------------
+import copy
+
 from ..Console import Console
 
 
@@ -14,8 +16,8 @@ class Allocation:
         """init cherry picks the fields of the Allocation we care about."""
         with Console.trace_function():
             if not alloc_dict:
-                raise "alloc_dict cannot be None"
-            self.dict = alloc_dict
+                raise Exception("alloc_dict cannot be None")
+            self.dict = copy.deepcopy(alloc_dict)
             self.label = alloc_dict['label']
             self.allocationStrategy = alloc_dict['allocationStrategy'].lower()
             self.minimumCapacity = alloc_dict['minimumCapacity']
@@ -57,7 +59,7 @@ class Allocation:
         """Dump object summary to console"""
         Console.output(Console.HALF_BAR)
         Console.output("Allocation")
-        if raw_output:
+        if raw_output:  # pragma: no cover
             Console.output(self.raw_json)
         else:
             Console.output(f"     label: {self.label}")

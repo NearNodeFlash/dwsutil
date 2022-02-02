@@ -20,8 +20,8 @@ NOTE: This approach is based on venv and always requires you to source venv/bin/
 - DWS Utility requires a valid kube config file and will utilize the following in order:
      **-k path_to_config** command line option
      The **config** item in the **k8s** section of the dwsutil config file in use
-     **\$KUBECONFIG** environment variable
-     **\$HOME/.kube/config**
+     The normal Kubernetes configuration as specified by \$KUBECONFIG or \$HOME/.kube
+- DWS Utility will use the default Kubernetes context, however the context may be overriden with the --kctx flag
 - TIP: Use the --showconfig flag to see what dwsutil.py will be using
 
 
@@ -69,6 +69,7 @@ The following is an example configuration containing most of the configurable it
 ```yaml
 k8s:
   config: $HOME/.kube/config
+  context: kind-vm
 config:
   userid: 1001
   jobid: 987
@@ -102,9 +103,9 @@ config:
 `$ ./dwsutil -?`
 
 **Create a Workflow Resource**
-`
+```
 $ ./dwsutil.py --operation create -n wfr-demo
-`
+```
 ```json
 {
     "action": "create",
@@ -120,9 +121,9 @@ $ ./dwsutil.py --operation create -n wfr-demo
 ```
 
 **List existing Workflow resources (no filtering currently available)**
-`
+```
 $ ./dwsutil.py --operation list
-`
+```
 ```json
 {
     "wfrs": [
@@ -132,9 +133,9 @@ $ ./dwsutil.py --operation list
 ```
 
 **Get basic Workflow information**
-`
+```
 $ ./dwsutil.py --operation get -n wfr-demo
-`
+```
 ```json
 {
     "desiredState": "proposal",
@@ -664,9 +665,9 @@ The following attributes may be specified when creating a Workflow:
 
 **Display cluster inventory with compute names munged**
 NOTE: In some of the earlier versions, non-unique compute names are implemented.  Use the --mungecompute arg to overcome if so desired.
-`
+```
 $ ./dwsutil.py --context inventory --operation show --mungecompute
-`
+```
 ```json
 {
     "nnfnodes": [
@@ -991,16 +992,36 @@ $ echo $?
 !0 - Something failed
 
 Specified returned error values:
-100 - DWS_GENERAL - A general DWS / Kubernetes error occurred, inspect the resulting message
-101 - DWS_NOTFOUND - The named object was not found
-102 - DWS_ALREADY_EXISTS - An attempt to create an object was made for an object that already exists
-103 - DWS_NOTREADY - An operation was attempted on an object that was not in a Ready state
-104 - DWS_IMPROPERSTATE An operation was attempted on an object that was in the wrong state
-105 - DWS_INCOMPLETE - An operation was attempted on an object that was missing components (e.g. DirectiveBreakdown missing)
-106 - DWS_NO_INVENTORY - An operation that requires inventory was attempted when no inventory was present/available
-107 - DWS_SOME_OPERATION_FAILED - An batch operation had at least 1 failure
-500 - DWS_K8S_ERROR - An uncaught kubernetes error occurred, inspect the resulting message for more information
+- 100 - DWS_GENERAL - A general DWS / Kubernetes error occurred, inspect the resulting message
+- 101 - DWS_NOTFOUND - The named object was not found
+- 102 - DWS_ALREADY_EXISTS - An attempt to create an object was made for an object that already exists
+- 103 - DWS_NOTREADY - An operation was attempted on an object that was not in a Ready state
+- 104 - DWS_IMPROPERSTATE An operation was attempted on an object that was in the wrong state
+- 105 - DWS_INCOMPLETE - An operation was attempted on an object that was missing components (e.g. DirectiveBreakdown missing)
+- 106 - DWS_NO_INVENTORY - An operation that requires inventory was attempted when no inventory was present/available
+- 107 - DWS_SOME_OPERATION_FAILED - An batch operation had at least 1 failure
+- 500 - DWS_K8S_ERROR - An uncaught kubernetes error occurred, inspect the resulting message for more information
 
-## Linting
+## Linting and Testing
 ---
 DWS Utility was continually linted during development using flake8 for various PEP violations
+
+Unit tests and code coverage have been implemented in DWSUtility.
+
+To run a single unit test file:
+```python3 -m unittest run tests/testArgs.py -v```
+
+To run all unit tests with python3:
+```python3 -m unittest discover -s tests/ -v```
+
+To run all unit tests with make:
+```make test```
+
+To generate a code coverage report:
+```make coveragereport```
+
+To generate a code coverage html report:
+```make coveragehtml```
+
+To generate a code coverage html report and open in a browser (MacOS only )
+```make showcoverage```

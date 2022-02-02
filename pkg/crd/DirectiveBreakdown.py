@@ -5,6 +5,8 @@
 # © Copyright 2021 Hewlett Packard Enterprise Development LP
 #
 # -----------------------------------------------------------------
+import copy
+
 from ..Console import Console
 from .Allocation import Allocation
 
@@ -14,8 +16,8 @@ class DirectiveBreakdown:
     def __init__(self, raw_breakdown):
         with Console.trace_function():
             if not raw_breakdown:
-                raise "raw_breakdown cannot be None"
-            self._raw_breakdown = raw_breakdown
+                raise Exception("raw_breakdown cannot be None")
+            self._raw_breakdown = copy.deepcopy(raw_breakdown)
 
     @property
     def name(self):
