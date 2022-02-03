@@ -83,6 +83,34 @@ class DWS:
             self.config = config
             self._k8sapi = k8s_client.CustomObjectsApi()
 
+    def pods_list(self):
+        v1 = k8s_client.CoreV1Api()
+        pods = v1.list_pod_for_all_namespaces(watch=False)
+        return pods
+
+    def node_list(self):
+        # Monkey patch this to get past a bug in the k8s library
+        # https://github.com/kubernetes-client/python/issues/895
+        from kubernetes.client.models.v1_container_image import V1ContainerImage
+
+        def names(self, names):
+            self._names = names
+
+        V1ContainerImage.names = V1ContainerImage.names.setter(names)
+
+        api = k8s_client.CoreV1Api()
+        response = api.list_node()
+        return response
+
+    def crd_list(self):
+        with Console.trace_function():
+            crd_api = k8s_client.ApiextensionsV1Api()
+            try:
+                crds = crd_api.list_custom_resource_definition()
+                return crds
+            except k8s_client.exceptions.ApiException as err:
+                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
+
     def crd_get_raw(self, crdkind, name, namespace="default", group="dws.cray.hpe.com", version="v1alpha1"):
         """Retrieve CR jSON by name for the given namespace.
 
@@ -102,7 +130,7 @@ class DWS:
                 return crd
             except k8s_client.exceptions.ApiException as err:
                 if err.status == 404:
-                    msg = f"{crdkind} named {name} was not found"
+                    msg = f"{crdkind} named '{namespace}.{name}'' was not found"
                     raise DWSError(msg, DWSError.DWS_NOTFOUND, err)
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 
@@ -382,7 +410,7 @@ class DWS:
             raw_wfr = self.wfr_get_raw(wfr.name, wfr.apiGroup, wfr.apiVersion)
             wfr.raw_wfr = raw_wfr
 
-    def directivebreakdown_get_raw(self, name, group="dws.cray.hpe.com", version="v1alpha1"):
+    def directivebreakdown_get_raw(self, name, namespace="default", group="dws.cray.hpe.com", version="v1alpha1"):
         """Retrieve the named directive breakdown as JSON.
 
         Parameters:
@@ -394,15 +422,15 @@ class DWS:
 
         with Console.trace_function():
             try:
-                breakdown = self.k8sapi.get_namespaced_custom_object(group, version, "default", "directivebreakdowns", name)
+                breakdown = self.k8sapi.get_namespaced_custom_object(group, version, namespace, "directivebreakdowns", name)
                 return breakdown
             except k8s_client.exceptions.ApiException as err:
                 if err.status == 404:
-                    msg = f"DirectiveBreakdown named {name} was not found"
+                    msg = f"DirectiveBreakdown named {namespace}.{name} was not found"
                     raise DWSError(msg, DWSError.DWS_NOTFOUND, err)
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 
-    def directivebreakdown_get(self, name, group="dws.cray.hpe.com", version="v1alpha1"):
+    def directivebreakdown_get(self, name, namespace="default", group="dws.cray.hpe.com", version="v1alpha1"):
         """Retrieve the named directive breakdown as DirectiveBreakdown object.
 
         Parameters:
@@ -414,15 +442,15 @@ class DWS:
 
         with Console.trace_function():
             try:
-                breakdown = self.k8sapi.get_namespaced_custom_object(group, version, "default", "directivebreakdowns", name)
+                breakdown = self.k8sapi.get_namespaced_custom_object(group, version, namespace, "directivebreakdowns", name)
                 return DirectiveBreakdown(breakdown)
             except k8s_client.exceptions.ApiException as err:
                 if err.status == 404:
-                    msg = f"DirectiveBreakdown named '{name}' was not found"
+                    msg = f"DirectiveBreakdown named '{namespace}.{name}' was not found"
                     raise DWSError(msg, DWSError.DWS_NOTFOUND, err)
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 
-    def wfr_get_directiveBreakdowns(self, wfr, group="dws.cray.hpe.com", version="v1alpha1"):
+    def wfr_get_directiveBreakdowns(self, wfr, namespace="default", group="dws.cray.hpe.com", version="v1alpha1"):
         """Retrieve a list of DirectiveBreakdown objects tied to the given Workflow.
 
         Parameters:
@@ -438,12 +466,12 @@ class DWS:
                 for n in wfr.directive_breakdown_names:
                     name = n['name']
                     Console.debug(Console.WORDY, f"retrieving breakdown name: {name}")
-                    breakdown = self.directivebreakdown_get(name)
+                    breakdown = self.directivebreakdown_get(name, namespace=namespace)
                     breakdowns.append(breakdown)
                 return breakdowns
             except k8s_client.exceptions.ApiException as err:  # pragma: no cover
                 if err.status == 404:
-                    msg = f"DirectiveBreakdown named '{name}' was not found"
+                    msg = f"DirectiveBreakdown named '{namespace}.{name}' was not found"
                     raise DWSError(msg, DWSError.DWS_NOTFOUND, err)
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 

@@ -8,3 +8,4 @@ venv/
 tests/results.txt
 .coverage
 htmlcov/
+localdata/

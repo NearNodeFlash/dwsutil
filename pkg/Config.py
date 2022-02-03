@@ -157,6 +157,7 @@ class Config:
         self.output_usage_item_detail(3, "CREATE - Create the specified WFR")
         self.output_usage_item_detail(3, "DELETE - Delete the WFR matching the specified name (regex allowed)")
         self.output_usage_item_detail(3, "GET - Get the named workflow resource")
+        self.output_usage_item_detail(3, "INVESTIGATE - Analyze the named WFR and associated objects")
         self.output_usage_item_detail(3, "LIST - List all workflows the system knows about")
         self.output_usage_item_detail(3, "PROGRESS - Progress to the next normal desired state in the lifecycle (regex allowed)")
         self.output_usage_item_detail(3, "PROGRESSTEARDOWN - Progress directly to 'teardown' desired state regardless of current state (regex allowed)")
@@ -164,6 +165,8 @@ class Config:
         self.output_usage_item_detail(3, "SHOW - Displays the nnf nodes and inventory from the cluster or inventory file")
         self.output_usage_item_detail(1, "When context = STORAGE")
         self.output_usage_item_detail(3, "LIST - List all Storage CRs the system knows about")
+        self.output_usage_item_detail(1, "When context = SYSTEM")
+        self.output_usage_item_detail(3, "INVESTIGATE - Analyze the current system configuration including nodes, pods, and CRDs")
 
         Console.outputnotsp("\nReturn values:")
         Console.outputnotsp("   0  Operation succeeded")
@@ -238,9 +241,9 @@ class Config:
         itemplus = item + "." * 30
         if source:
             valueplus = value + " " * 30
-            Console.output(f"    {itemplus[:20]}: {valueplus[:30]} ( {source} )")
+            Console.output(f"{itemplus[:20]}: {valueplus[:30]} ( {source} )")
         else:
-            Console.output(f"    {itemplus[:20]}: {value}")
+            Console.output(f"{itemplus[:20]}: {value}")
 
     def output_configuration(self, init_flags_only=False):
         """Output the current DWS Utility configuration to the console.

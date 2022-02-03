@@ -71,6 +71,356 @@ class DWSUtility:
         Console.pretty_json({"wfrs": wfr_list})
         return 0
 
+    def object_str(self, objtype, name, created="n/a", owner="n/a", not_found=False):
+        width = 50
+        spacer = " " * width
+        if not_found:
+            return(f"{(objtype+spacer)[:20]} name : {(name+spacer)[:30]} ** OBJECT NOT FOUND **")
+        else:
+            return(f"{(objtype+spacer)[:20]} name : {(name+spacer)[:30]} owner: {(owner+spacer)[:45]} created: {(created+spacer)[:20]}")
+
+    def do_investigate_system(self):
+        """Investigate the named workflow"""
+        facts = []
+
+        Console.output("\nConfiguration", output_timestamp=False)
+        Console.output("-"*20, output_timestamp=False)
+        tsp = Console.timestamp
+
+        Console.timestamp = False
+        apic = k8s_config.kube_config.ApiClient()
+        host = apic.configuration.host
+        self.config.output_config_item("DWS API Endpoint", host)
+        self.config.output_configuration(init_flags_only=True)
+        Console.timestamp = tsp
+
+        # Evaluate nodes
+        tsp = Console.timestamp
+        node_count = 0
+        rabbit_count = 0
+        manager_count = 0
+        notready_rabbit_count = 0
+        notready_manager_count = 0
+        rabbit_nodes = []
+        manager_nodes = []
+        other_nodes = []
+        try:
+            nodes = self.dws.node_list()
+            for node in nodes.items:
+                node_count += 1
+                status = "unknown"
+                for condition in node.status.conditions:
+                    if condition.type == "Ready":
+                        status = "Ready" if condition.status == 'True' else 'Not Ready'
+                if status != "Ready":
+                    facts.append(f"WARNING: Node '{node.metadata.name}'' is not ready")
+                if node.metadata.labels and len(node.metadata.labels) > 0:
+                    labels = str([f"{label}:{node.metadata.labels[label]}" for label in node.metadata.labels if label.startswith('cray')])
+                    if labels == "[]":
+                        labels = "None"
+                else:
+                    labels = "None"
+                if node.spec.taints and len(node.spec.taints) > 0:
+                    taints = str([f"{label.key} {label.effect}:{label.value}" for label in node.spec.taints])
+                    if taints == "[]":
+                        taints = "None"
+                else:
+                    taints = "None"
+
+                is_manager = True if node.metadata.labels and 'cray.nnf.manager' in node.metadata.labels and node.metadata.labels['cray.nnf.manager'] == 'true' else False
+                is_cray_node = True if node.metadata.labels and 'cray.nnf.node' in node.metadata.labels and node.metadata.labels['cray.nnf.node'] == 'true' else False
+                is_no_schedule = node.spec.taints and len([t for t in node.spec.taints if t.key.startswith('cray') and t.effect == 'NoSchedule' and t.value == 'true']) > 0
+                node_str = f"{(node.metadata.name + ' '*20)[:20]} {(status+' '*5)[:10]} labels: {labels} taints: {taints}"
+
+                if is_manager:
+                    manager_count += 1
+                    manager_nodes.append(node_str)
+                    if status != "Ready":
+                        notready_manager_count += 1
+                elif is_cray_node:
+                    rabbit_count += 1
+                    rabbit_nodes.append(node_str)
+                    if not is_no_schedule:
+                        facts.append(f"WARNING: Rabbit node {node.metadata.name} does not have the NoSchedule taint")
+                    if status != "Ready":
+                        notready_rabbit_count += 1
+                else:
+                    other_nodes.append(node_str)
+
+            Console.output("\nHPE Manager Nodes", output_timestamp=False)
+            Console.output("-"*20, output_timestamp=False)
+            if len(manager_nodes) == 0:
+                Console.output("None", output_timestamp=False)
+                facts.append("WARNING: No HPE manager nodes are present")
+            else:
+                for node in manager_nodes:
+                    Console.output(node, output_timestamp=False)
+
+            Console.output("\nHPE Rabbit Nodes", output_timestamp=False)
+            Console.output("-"*20, output_timestamp=False)
+            if len(rabbit_nodes) == 0:
+                Console.output("None", output_timestamp=False)
+                facts.append("WARNING: No HPE rabbit nodes are present")
+            else:
+                for node in rabbit_nodes:
+                    Console.output(node, output_timestamp=False)
+
+            Console.output("\nOther Nodes", output_timestamp=False)
+            Console.output("-"*20, output_timestamp=False)
+            if len(other_nodes) == 0:
+                Console.output("None", output_timestamp=False)
+                # Not sure if this should be a warning.
+                facts.append("WARNING: No other nodes are present")
+            else:
+                for node in other_nodes:
+                    Console.output(node, output_timestamp=False)
+
+            if node_count == 0:
+                facts.append("WARNING: There are no nodes in the system")
+            if manager_count == 0:
+                facts.append("WARNING: There are no Manager nodes in the system")
+            if rabbit_count == 0:
+                facts.append("WARNING: There are no Rabbit nodes in the system")
+            if notready_manager_count > 0:
+                facts.append(f"WARNING: There are {notready_manager_count} Manager nodes that are not ready")
+            if notready_rabbit_count > 0:
+                facts.append(f"WARNING: There are {notready_rabbit_count} Rabbit nodes that are not ready")
+
+            facts.append(f"Total nodes: {node_count}")
+            facts.append(f"Total Rabbit nodes: {rabbit_count}")
+            facts.append(f"Total Manager nodes: {manager_count}")
+
+        except DWSError as ex:
+            Console.output(ex.message, output_timestamp=False)
+            return ex.code
+
+        # Evaluate pods
+        Console.output("\nPods", output_timestamp=False)
+        Console.output("-"*20, output_timestamp=False)
+        dws_operator_count = 0
+        nnf_controller_manager_count = 0
+        nnf_node_manager_count = 0
+        cert_manager_count = 0
+        cert_manager_webhook_count = 0
+        notready_dws_operator_count = 0
+        notready_nnf_controller_manager_count = 0
+        notready_nnf_node_manager_count = 0
+        notready_cert_manager_count = 0
+        notready_cert_manager_webhook_count = 0
+
+        pods = self.dws.pods_list()
+        for pod in pods.items:
+            report_pod = False
+            if pod.metadata.name.startswith("dws-operator-controller-manager"):
+                dws_operator_count += 1
+                report_pod = True
+                if pod.status.phase != "Running":
+                    notready_dws_operator_count += 1
+            if pod.metadata.name.startswith("nnf-controller-manager"):
+                nnf_controller_manager_count += 1
+                report_pod = True
+                if pod.status.phase != "Running":
+                    notready_nnf_controller_manager_count += 1
+            if pod.metadata.name.startswith("nnf-node-manager"):
+                nnf_node_manager_count += 1
+                report_pod = True
+                if pod.status.phase != "Running":
+                    notready_nnf_node_manager_count += 1
+
+            if pod.metadata.namespace == 'cert-manager':
+                if 'app' in pod.metadata.labels:
+                    if pod.metadata.labels['app'] == 'cert-manager':
+                        cert_manager_count += 1
+                        report_pod = True
+                        if pod.status.phase != "Running":
+                            notready_cert_manager_count += 1
+                    if pod.metadata.labels['app'] == 'webhook':
+                        cert_manager_webhook_count += 1
+                        report_pod = True
+                        if pod.status.phase != "Running":
+                            notready_cert_manager_webhook_count += 1
+            if report_pod:
+                Console.output(f"{(pod.metadata.namespace+' '*20)[:20]} {(pod.metadata.name+' '*50)[:60]} {(pod.status.phase+' '*10)[:15]} {pod.status.pod_ip}", output_timestamp=False)
+
+        # Evaluate pods
+        Console.output("\nCustom Resource Definitions", output_timestamp=False)
+        Console.output("-"*50, output_timestamp=False)
+        crd_count = 0
+        # NOTE: Any added/deleted CRDs need to be reflect in this list
+        hpe_crds = [
+            "computes.dws.cray.hpe.com",
+            "directivebreakdowns.dws.cray.hpe.com",
+            "dwdirectiverules.dws.cray.hpe.com",
+            "servers.dws.cray.hpe.com",
+            "storagepools.dws.cray.hpe.com",
+            "storages.dws.cray.hpe.com",
+            "workflows.dws.cray.hpe.com",
+            "nnfjobstorageinstances.nnf.cray.hpe.com",
+            "nnfnodes.nnf.cray.hpe.com",
+            "nnfnodestorages.nnf.cray.hpe.com",
+            "nnfstorages.nnf.cray.hpe.com"
+        ]
+        crds = self.dws.crd_list()
+        for crd in crds.items:
+            if "hpe.com" in crd.metadata.name:
+                hpe_crds.remove(crd.metadata.name)
+                crd_count += 1
+                Console.output(crd.metadata.name, output_timestamp=False)
+
+        for crd in hpe_crds:
+            facts.append(f"WARNING: HPE custom resource definition '{crd}' does not exist in the system")
+
+        facts.append(f"HPE custom resource definitions: {crd_count}")
+        # Dump summary of investigation
+        Console.output("\nSummary", output_timestamp=False)
+        Console.output("-"*20, output_timestamp=False)
+        if len(facts) == 0:
+            Console.output("Nothing to report", output_timestamp=False)
+        else:
+            for fact in list(filter(lambda x: not x.startswith("WARNING"), facts)):
+                Console.output(fact, output_timestamp=False)
+            for fact in list(filter(lambda x: x.startswith("WARNING"), facts)):
+                Console.output(fact, output_timestamp=False)
+        return 0
+
+    def do_investigate_wfr(self):
+        """Investigate the named workflow"""
+        facts = []
+        objects = []
+        expected_but_missing = []
+        assign_expected = True
+
+        # Dump out the workflow
+        try:
+            wfr = self.dws.crd_get_raw("workflows", self.config.wfr_name)
+            objects.append(self.object_str("Workflow", f"{wfr['metadata']['namespace']}.{wfr['metadata']['name']}", f"{wfr['metadata']['creationTimestamp']}"))
+            wfr["metadata"].pop("managedFields")
+            Console.output(f"{'-'*20} Object: Workflow default.{wfr['metadata']['name']}{'-'*20}", output_timestamp=False)
+            Console.pretty_json(wfr)
+
+            if "metadata" not in wfr:
+                Console.error("Workflow does not contain a metadata section", output_timestamp=False)
+                return -1
+
+            if "spec" not in wfr:
+                Console.error("Workflow does not contain a spec section", output_timestamp=False)
+                return -1
+
+            if "status" not in wfr:
+                Console.error("Workflow does not contain a status section", output_timestamp=False)
+                return -1
+
+        except DWSError as ex:
+            Console.output(ex.message, output_timestamp=False)
+            return ex.code
+
+        if wfr["spec"]["desiredState"] == "proposal":
+            assign_expected = False
+
+        if wfr["spec"]["desiredState"] == wfr["status"]["state"]:
+            facts.append(f"WORKFLOW: desiredState '{wfr['spec']['desiredState']}' has been achieved")
+            if not wfr["status"]["ready"]:
+                facts.append("WARNING: Workflow ready field IS FALSE")
+        else:
+            facts.append(f"WORKFLOW: desiredState '{wfr['spec']['desiredState']}' has NOT been achieved")
+            if wfr["status"]["ready"]:
+                facts.append("WARNING: Workflow ready field IS TRUE")
+        if "dwDirectives" not in wfr["spec"]:
+            facts.append("WARNING: No dwDirectives field in spec")
+        elif len(wfr["spec"]["dwDirectives"]) < 1:
+            facts.append("WARNING: No datawarp directives in this workflow")
+
+        # Collect and dump the computes
+        try:
+            computes = self.dws.crd_get_raw("computes", self.config.wfr_name, "default")
+            if len(computes['metadata']['ownerReferences']) > 0:
+                objects.append(self.object_str("Computes", f"{computes['metadata']['namespace']}.{computes['metadata']['name']}", f"{computes['metadata']['creationTimestamp']}", f"{computes['metadata']['ownerReferences'][0]['kind']} {computes['metadata']['ownerReferences'][0]['name']}"))
+            else:
+                objects.append(self.object_str("Computes", f"{computes['metadata']['namespace']}.{computes['metadata']['name']}", f"{computes['metadata']['creationTimestamp']}", "<absent>"))
+            computes["metadata"].pop("managedFields")
+            Console.output(f"{'-'*20} Object: computes default.{computes['metadata']['name']} {'-'*20}", output_timestamp=False)
+            Console.pretty_json(computes)
+            if 'data' in computes and len(computes['data']) > 0:
+                facts.append("WORKFLOW: Computes have been assigned")
+            elif assign_expected:
+                facts.append(f"WARNING: Workflow desiredState is '{wfr['spec']['desiredState']}' but no computes have been assigned")
+        except DWSError as ex:
+            objects.append(self.object_str("Computes", f"default.{self.config.wfr_name}", not_found=True))
+            expected_but_missing.append(f"default.computes.{self.config.wfr_name}")
+            facts.append(f"WARNING: {ex.message}")
+
+        # Collect and dump the breakdowns
+        for bd in wfr["status"]["directiveBreakdowns"]:
+            bdname = bd['name']
+            bdnamespace = bd['namespace']
+            try:
+                breakdown = self.dws.crd_get_raw("directivebreakdowns", bdname, bdnamespace)
+                if len(breakdown['metadata']['ownerReferences']) > 0:
+                    objects.append(self.object_str("DirectiveBreakdowns", f"{bdnamespace}.{bdname}", f"{breakdown['metadata']['creationTimestamp']}", f"{breakdown['metadata']['ownerReferences'][0]['kind']} {breakdown['metadata']['ownerReferences'][0]['name']}"))
+                else:
+                    objects.append(self.object_str("DirectiveBreakdowns", f"{bdnamespace}.{bdname}", f"{breakdown['metadata']['creationTimestamp']}"))
+                breakdown["metadata"].pop("managedFields")
+                Console.output(f"{'-'*20} Object: directiveBreakdown {bdnamespace}.{bdname} {'-'*20}", output_timestamp=False)
+                Console.pretty_json(breakdown)
+
+                # Dump out servers for this breakdown
+                if 'servers' not in breakdown['status']:
+                    if assign_expected:
+                        facts.append(f"WARNING: Workflow desiredState is '{wfr['spec']['desiredState']}' but no servers have been assigned")
+                    else:
+                        facts.append(f"DirectiveBreakdown: {bdname} does not have a servers element")
+                else:
+                    servers = breakdown['status']['servers']
+                    svrname = servers['name']
+                    svrnamespace = servers['namespace']
+                    try:
+                        server = self.dws.crd_get_raw("servers", svrname, svrnamespace)
+                        if len(server['metadata']['ownerReferences']) > 0:
+                            objects.append(self.object_str("Server", f"{svrnamespace}.{svrname}", f"{server['metadata']['creationTimestamp']}", f"{server['metadata']['ownerReferences'][0]['kind']} {server['metadata']['ownerReferences'][0]['name']}"))
+                        else:
+                            objects.append(self.object_str("Server", f"{svrnamespace}.{svrname}", f"{server['metadata']['creationTimestamp']}"))
+                        if 'allocationSets' in server['status']:
+                            facts.append(f"WORKFLOW: Servers have been assigned to '{bdname}'")
+                        elif assign_expected:
+                            facts.append(f"WARNING: Workflow desiredState is '{wfr['spec']['desiredState']}' but no servers have been assigned to '{bdname}'")
+                        server["metadata"].pop("managedFields")
+                        Console.output(f"{'-'*20} Object: Server {svrnamespace}.{svrname} {'-'*20}", output_timestamp=False)
+                        Console.pretty_json(server)
+                    except DWSError as ex:
+                        objects.append(self.object_str("Servers", f"{svrnamespace}.{svrname}", not_found=True))
+                        expected_but_missing.append(f"{svrnamespace}.directivebreakdowns.{svrname}")
+                        objects.append(f"Servers: {svrnamespace}.{svrname} - NOT FOUND")
+                        facts.append(f"WARNING: {ex.message}")
+            except DWSError as ex:
+                objects.append(self.object_str("DirectiveBreakdowns", f"{bdnamespace}.{bdname}", not_found=True))
+                expected_but_missing.append(f"{bdnamespace}.directivebreakdowns.{bdname}")
+                facts.append(f"WARNING: {ex.message}")
+
+        # Dump summary of investigation
+        Console.output("\nObjects evaluated", output_timestamp=False)
+        Console.output("-"*20, output_timestamp=False)
+        for obj in objects:
+            Console.output(obj, output_timestamp=False)
+
+        Console.output("\nMissing objects", output_timestamp=False)
+        Console.output("-"*20, output_timestamp=False)
+        if len(expected_but_missing) < 1:
+            Console.output("No missing objects", output_timestamp=False)
+        else:
+            for obj in expected_but_missing:
+                Console.output(obj, output_timestamp=False)
+
+        Console.output("\nSummary", output_timestamp=False)
+        Console.output("-"*20, output_timestamp=False)
+        if len(facts) == 0:
+            Console.output("Nothing to report", output_timestamp=False)
+        else:
+            for fact in list(filter(lambda x: not x.startswith("WARNING"), facts)):
+                Console.output(fact, output_timestamp=False)
+            for fact in list(filter(lambda x: x.startswith("WARNING"), facts)):
+                Console.output(fact, output_timestamp=False)
+        return 0
+
     def do_get_wfr(self, name):
         """Retrieve specified Workflow CR and dump to console."""
         wfr = self.dws.wfr_get(name)
@@ -534,6 +884,8 @@ class DWSUtility:
                     ret_code = self.do_progress_wfr()
                 elif self.config.operation == "PROGRESSTEARDOWN":
                     ret_code = self.do_progressteardown_wfr()
+                elif self.config.operation == "INVESTIGATE":
+                    ret_code = self.do_investigate_wfr()
                 else:
                     self.config.usage(f"Unrecognized operation {self.config.operation} specified for {self.config.context}")
 
@@ -550,6 +902,14 @@ class DWSUtility:
                     ret_code = self.do_list_storage()
                 else:
                     self.config.usage(f"Unrecognized operation {self.config.operation} specified for {self.config.context}")
+
+            # Process System operations
+            elif self.config.context == "SYSTEM":
+                if self.config.operation == "INVESTIGATE":
+                    ret_code = self.do_investigate_system()
+                else:
+                    self.config.usage(f"Unrecognized operation {self.config.operation} specified for {self.config.context}")
+
             else:
                 self.config.usage(f"Unrecognized context {self.config.context}")
 
