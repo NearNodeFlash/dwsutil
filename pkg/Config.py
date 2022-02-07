@@ -20,9 +20,11 @@ class Config:
     """Holds the configuration information for the DWS Utility."""
     K8S_GROUP = "dws.cray.hpe.com"
     K8S_VERSION = "v1alpha1"
+    DWSUTIL_VERSION = "0.2"
 
     def __init__(self, argv):
-        self.version_string = "DWS Utility - Version 0.1"
+        self.version_number = "0.2"
+        self.version_string = f"DWS Utility - Version {Config.DWSUTIL_VERSION}"
         self.argv = argv
         self.munge = False
         self.compute_munge = False

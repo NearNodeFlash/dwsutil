@@ -1,1 +1,9 @@
 venv/
+Dockerfile 
+localdata/
+htmlcov
+.git
+.gitignore
+.dockerignore
+.coverage
+.vscode

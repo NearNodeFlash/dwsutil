@@ -140,7 +140,7 @@ class DWS:
                 if err.status == 404:
                     msg = f"{crdkind} named '{namespace}.{name}'' was not found"
                     raise DWSError(msg, DWSError.DWS_NOTFOUND, err)
-                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
+                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)  # pragma: no cover
 
     # Inventory Routines
     def inventory_build_from_cluster(self, only_ready_nodes=False, allow_compute_name_munge=True, group="nnf.cray.hpe.com", version="v1alpha1"):
@@ -273,7 +273,7 @@ class DWS:
                 if err.status == 404:
                     msg = f"Workflow Resource named '{wfrname}' was not found"
                     raise DWSError(msg, DWSError.DWS_NOTFOUND, err)
-                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
+                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)  # pragma: no cover
 
     def wfr_get(self, wfrname, group="dws.cray.hpe.com", version="v1alpha1"):
         """Retrieve a named Workflow CR as a Workflow object.
@@ -294,7 +294,7 @@ class DWS:
                 if err.status == 404:
                     msg = f"Workflow Resource named '{wfrname}' was not found"
                     raise DWSError(msg, DWSError.DWS_NOTFOUND, err)
-                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
+                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)  # pragma: no cover
 
     def wfr_delete(self, wfrname, group="dws.cray.hpe.com", version="v1alpha1"):
         """Delete a named Workflow CR.
@@ -398,7 +398,7 @@ class DWS:
                 msg = f"Workflow Resource named '{wfrname}' must be 'ready' to be progressed, current ready state is '{wfr.ready}'"
                 raise DWSError(msg, DWSError.DWS_IMPROPERSTATE, None)
         except k8s_client.exceptions.ApiException as err:
-            if err.status == 404:
+            if err.status == 404:  # pragma: no cover
                 msg = f"Workflow Resource named '{wfrname}' was not found"
                 raise DWSError(msg, DWSError.DWS_NOTFOUND, err)
             raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)

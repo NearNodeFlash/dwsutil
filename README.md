@@ -1273,6 +1273,107 @@ Specified returned error values:
 - 107 - DWS_SOME_OPERATION_FAILED - An batch operation had at least 1 failure
 - 500 - DWS_K8S_ERROR - An uncaught kubernetes error occurred, inspect the resulting message for more information
 
+## Docker
+DWS Utility comes with a Dockerfile that can be used to run the utility inside of a container.  The version tag is extracted
+from the DWSUTILITY_VERSION variable inside of pkg/Config.py.
+
+**Build the docker image**
+```
+make image
+```
+```
+$ docker images | grep dwsutil
+dwsutil                                                 0.2               0b7db29921af   10 minutes ago      198MB
+arti.dev.cray.com/dwsutil/dwsutil                       0.2               0b7db29921af   10 minutes ago      198MB
+```
+
+**Run the docker image**
+You will need to specify your kubernetes config in the form of a mount to docker.  Change the **source=** to reference your own kube config.
+If you run into any "Operation not permitted" errors, you may need to add the following flag to your docker run command: --security-opt=seccomp=docker_default.json
+```
+$ docker run --mount type=bind,source="$(pwd)"/localdata/kube-vm.cfg,target="/app/.kube/config",readonly  dwsutil:0.2 --showconfig
+2022-02-04 20:24:42 DWS API Endpoint....: http://192.168.100.12:8080
+2022-02-04 20:24:42 config file.........: dwsutil.cfg                    ( Existing dwsutil.cfg )
+2022-02-04 20:24:42 K8S default.........: ~/.kube/config
+2022-02-04 20:24:42 Available contexts..: ['kind-vm']
+2022-02-04 20:24:42 Using K8S context...: kind-vm                        ( Default context )
+2022-02-04 20:24:42 Preview.............: False
+2022-02-04 20:24:42 Context.............: WFR
+2022-02-04 20:24:42 Operation...........:
+2022-02-04 20:24:42 ...Count............: 1
+2022-02-04 20:24:42 WFR name............:
+2022-02-04 20:24:42 WLM id..............: 5f239bd8-30db-450b-8c2c-a1a7c8631a1a
+2022-02-04 20:24:42 Job id..............: 5555
+2022-02-04 20:24:42 User id.............: 1001
+2022-02-04 20:24:42 # of nodes..........: 1
+2022-02-04 20:24:42 Exclude computes....: []
+2022-02-04 20:24:42 Exclude rabbits.....: []
+2022-02-04 20:24:42 Inventory file......: None
+2022-02-04 20:24:42 dw directive........: #DW jobdw type=xfs capacity=5GB name=vm-test-1-raw
+2022-02-04 20:24:42 ShowConfig..........: True
+2022-02-04 20:24:42 Munge WFR names.....: False
+2022-02-04 20:24:42 Munge Compute names.: False
+2022-02-04 20:24:42 Allow regexes.......: False
+$ docker run --mount type=bind,source="$(pwd)"/localdata/kube-vm.cfg,target="/app/.kube/config",readonly  dwsutil:0.2 --operation list
+{
+    "wfrs": [
+        "mywfr",
+        "newwfr",
+        "tst-wfr",
+        "tst-wfr2",
+        "wfr-20220202",
+        "wfr-20220202-1409",
+        "wfr-20220202-1636",
+        "wfr-batch-1",
+        "wfr-batch-2",
+        "wfr-batch-3",
+        "wfr-batch-4"
+    ]
+}
+```
+
+**Running unit tests in a container**
+```
+$ make container-unit-test
+docker build -f Dockerfile --label arti.dev.cray.com/dwsutil/dwsutil-container-unit-test:0.2-container-unit-test -t arti.dev.cray.com/dwsutil/dwsutil-container-unit-test:0.2 --target container-unit-test .
+Sending build context to Docker daemon  92.49MB
+Step 1/9 : FROM alpine:3.15 as builder
+ ---> c059bfaa849c
+Step 2/9 : ENV PYTHONUNBUFFERED=1
+ ---> Using cache
+ ---> e66f0654663e
+
+...
+
+Successfully tagged arti.dev.cray.com/dwsutil/dwsutil-container-unit-test:0.2
+docker run --rm -t --name container-unit-test  arti.dev.cray.com/dwsutil/dwsutil-container-unit-test:0.2
+dwsutil/dwsutil-container-unit-test:0.2
+test_arg_compute_munge (testArgs.TestArgs) ... ok
+test_arg_compute_munge_default (testArgs.TestArgs) ... ok
+test_arg_configfile (testArgs.TestArgs) ... ok
+test_arg_context (testArgs.TestArgs) ... ok
+test_arg_context_default (testArgs.TestArgs) ... ok
+
+...
+
+test_dws_wfr_update_desiredstate_notfound (testDws.TestDWS) ... ok
+test_dws_wfr_update_desiredstate_notready (testDws.TestDWS) ... ok
+test_dws_wfr_update_desiredstate_notready_force (testDws.TestDWS) ... ok
+
+----------------------------------------------------------------------
+Ran 128 tests in 0.458s
+
+OK
+Unit tests successful
+```
+
+**Cleaning up your dwsutil docker containers**
+You may easily delete all of your dwsutil container images by running
+
+```
+make docker-clean
+```
+
 ## Linting and Testing
 ---
 DWS Utility was continually linted during development using flake8 for various PEP violations
@@ -1290,9 +1391,45 @@ To run all unit tests with make:
 
 To generate a code coverage report:
 ```make coveragereport```
+```
+coverage run --branch --timid --source=. --omit=tests/* -m unittest discover -s tests/ -v 2>&1 | tee tests/results.txt
+test_arg_compute_munge (testArgs.TestArgs) ... ok
+test_arg_compute_munge_default (testArgs.TestArgs) ... ok
+test_arg_configfile (testArgs.TestArgs) ... ok
+
+...
+
+test_dws_wfr_update_desiredstate_notfound (testDws.TestDWS) ... ok
+test_dws_wfr_update_desiredstate_notready (testDws.TestDWS) ... ok
+test_dws_wfr_update_desiredstate_notready_force (testDws.TestDWS) ... ok
+
+----------------------------------------------------------------------
+Ran 128 tests in 3.748s
+
+OK
+coverage report --skip-empty
+Name                            Stmts   Miss Branch BrPart  Cover
+-----------------------------------------------------------------
+dwsutil.py                          7      7      2      0     0%
+pkg/Config.py                     437    186    194     33    60%
+pkg/Console.py                     71     18     22      4    68%
+pkg/DWSUtility.py                 890    846    464      0     3%
+pkg/Dws.py                        233      6     40      6    95%
+pkg/Rest.py                        54     54      6      0     0%
+pkg/crd/Allocation.py              42      0     14      0   100%
+pkg/crd/DirectiveBreakdown.py      25      0      8      0   100%
+pkg/crd/Nnfnode.py                 68      0     22      0   100%
+pkg/crd/Storage.py                 34      0      4      0   100%
+pkg/crd/Workflow.py               103      3     18      0    98%
+-----------------------------------------------------------------
+TOTAL                            1964   1120    794     43    39%
+
+2 empty files skipped.
+```
 
 To generate a code coverage html report:
 ```make coveragehtml```
 
 To generate a code coverage html report and open in a browser (MacOS only )
+Note: Only do this once, then use **make coveragehtml** to update the html and then refresh in the browser.
 ```make showcoverage```
