@@ -84,23 +84,31 @@ class DWS:
             self._k8sapi = k8s_client.CustomObjectsApi()
 
     def pods_list(self):
-        v1 = k8s_client.CoreV1Api()
-        pods = v1.list_pod_for_all_namespaces(watch=False)
-        return pods
+        with Console.trace_function():
+            try:
+                v1 = k8s_client.CoreV1Api()
+                pods = v1.list_pod_for_all_namespaces(watch=False)
+                return pods
+            except k8s_client.exceptions.ApiException as err:  # pragma: no cover
+                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 
     def node_list(self):
-        # Monkey patch this to get past a bug in the k8s library
-        # https://github.com/kubernetes-client/python/issues/895
-        from kubernetes.client.models.v1_container_image import V1ContainerImage
+        with Console.trace_function():
+            try:
+                # Monkey patch this to get past a bug in the k8s library
+                # https://github.com/kubernetes-client/python/issues/895
+                from kubernetes.client.models.v1_container_image import V1ContainerImage   # pragma: no cover
 
-        def names(self, names):
-            self._names = names
+                def names(self, names):  # pragma: no cover
+                    self._names = names
 
-        V1ContainerImage.names = V1ContainerImage.names.setter(names)
+                V1ContainerImage.names = V1ContainerImage.names.setter(names)
 
-        api = k8s_client.CoreV1Api()
-        response = api.list_node()
-        return response
+                api = k8s_client.CoreV1Api()
+                response = api.list_node()
+                return response
+            except k8s_client.exceptions.ApiException as err:   # pragma: no cover
+                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 
     def crd_list(self):
         with Console.trace_function():
@@ -108,7 +116,7 @@ class DWS:
             try:
                 crds = crd_api.list_custom_resource_definition()
                 return crds
-            except k8s_client.exceptions.ApiException as err:
+            except k8s_client.exceptions.ApiException as err:  # pragma: no cover
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 
     def crd_get_raw(self, crdkind, name, namespace="default", group="dws.cray.hpe.com", version="v1alpha1"):

@@ -391,6 +391,24 @@ class TestDWS(unittest.TestCase, TestUtil):
             nnfnodelist = self.dws.storage_get_all()
             self.assertEqual(len(nnfnodelist), 2)
 
+    def test_dws_pods_list(self):
+        with patch("kubernetes.client.api.core_v1_api.CoreV1Api.list_pod_for_all_namespaces") as function_mock:
+            function_mock.return_value = []
+            pods = self.dws.pods_list()
+            self.assertTrue(len(pods) == 0)
+
+    def test_dws_node_list(self):
+        with patch("kubernetes.client.api.core_v1_api.CoreV1Api.list_node") as function_mock:
+            function_mock.return_value = []
+            nodes = self.dws.node_list()
+            self.assertTrue(len(nodes) == 0)
+
+    def test_dws_crd_list(self):
+        with patch("kubernetes.client.api.apiextensions_v1_api.ApiextensionsV1Api.list_custom_resource_definition") as function_mock:
+            function_mock.return_value = []
+            crds = self.dws.crd_list()
+            self.assertTrue(len(crds) == 0)
+
 
 if __name__ == '__main__':
     unittest.main()

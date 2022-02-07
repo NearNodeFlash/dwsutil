@@ -59,19 +59,8 @@ class DWSUtility:
         """Dump the current configuration to the console as json."""
         Console.debug(Console.WORDY, f"Configuration: {self.config.to_json()}")
 
-    def do_list_storage(self):
-        """Retrieve list of Storage CRs and dump to console."""
-        storage_list = self.dws.storage_list_names()
-        Console.pretty_json({"rabbits": storage_list})
-        return 0
-
-    def do_list_wfr(self):
-        """Retrieve list of Workflow CRs and dump to console."""
-        wfr_list = self.dws.wfr_list_names()
-        Console.pretty_json({"wfrs": wfr_list})
-        return 0
-
     def object_str(self, objtype, name, created="n/a", owner="n/a", not_found=False):
+        """Convenience method for formatting object information."""
         width = 50
         spacer = " " * width
         if not_found:
@@ -79,10 +68,8 @@ class DWSUtility:
         else:
             return(f"{(objtype+spacer)[:20]} name : {(name+spacer)[:30]} owner: {(owner+spacer)[:45]} created: {(created+spacer)[:20]}")
 
-    def do_investigate_system(self):
-        """Investigate the named workflow"""
-        facts = []
-
+    def investigate_system_configuration(self, facts):
+        """Report current configuration and cluster info."""
         Console.output("\nConfiguration", output_timestamp=False)
         Console.output("-"*20, output_timestamp=False)
         tsp = Console.timestamp
@@ -94,8 +81,8 @@ class DWSUtility:
         self.config.output_configuration(init_flags_only=True)
         Console.timestamp = tsp
 
-        # Evaluate nodes
-        tsp = Console.timestamp
+    def investigate_nodes(self, facts):
+        """Investigate Nodes in the system and report any issues."""
         node_count = 0
         rabbit_count = 0
         manager_count = 0
@@ -130,7 +117,7 @@ class DWSUtility:
                 is_manager = True if node.metadata.labels and 'cray.nnf.manager' in node.metadata.labels and node.metadata.labels['cray.nnf.manager'] == 'true' else False
                 is_cray_node = True if node.metadata.labels and 'cray.nnf.node' in node.metadata.labels and node.metadata.labels['cray.nnf.node'] == 'true' else False
                 is_no_schedule = node.spec.taints and len([t for t in node.spec.taints if t.key.startswith('cray') and t.effect == 'NoSchedule' and t.value == 'true']) > 0
-                node_str = f"{(node.metadata.name + ' '*20)[:20]} {(status+' '*5)[:10]} labels: {labels} taints: {taints}"
+                node_str = f"{(node.metadata.name + ' '*35)[:35]} {(status+' '*5)[:10]} labels: {labels} taints: {taints}"
 
                 if is_manager:
                     manager_count += 1
@@ -194,7 +181,8 @@ class DWSUtility:
             Console.output(ex.message, output_timestamp=False)
             return ex.code
 
-        # Evaluate pods
+    def investigate_pods(self, facts):
+        """Investigate PODs in the system and report any issues."""
         Console.output("\nPods", output_timestamp=False)
         Console.output("-"*20, output_timestamp=False)
         dws_operator_count = 0
@@ -242,19 +230,24 @@ class DWSUtility:
             if report_pod:
                 Console.output(f"{(pod.metadata.namespace+' '*20)[:20]} {(pod.metadata.name+' '*50)[:60]} {(pod.status.phase+' '*10)[:15]} {pod.status.pod_ip}", output_timestamp=False)
 
-        # Evaluate pods
+    def investigate_crds(self, facts):
+        """Investigate CRDs in the system and report missing ones."""
         Console.output("\nCustom Resource Definitions", output_timestamp=False)
         Console.output("-"*50, output_timestamp=False)
         crd_count = 0
         # NOTE: Any added/deleted CRDs need to be reflect in this list
+        unexpected_crd_list = []
         hpe_crds = [
             "computes.dws.cray.hpe.com",
+            "clientmounts.dws.cray.hpe.com",
             "directivebreakdowns.dws.cray.hpe.com",
             "dwdirectiverules.dws.cray.hpe.com",
             "servers.dws.cray.hpe.com",
             "storagepools.dws.cray.hpe.com",
             "storages.dws.cray.hpe.com",
             "workflows.dws.cray.hpe.com",
+            "nnfaccesses.nnf.cray.hpe.com",
+            "nnfdatamovements.nnf.cray.hpe.com",
             "nnfjobstorageinstances.nnf.cray.hpe.com",
             "nnfnodes.nnf.cray.hpe.com",
             "nnfnodestorages.nnf.cray.hpe.com",
@@ -263,14 +256,34 @@ class DWSUtility:
         crds = self.dws.crd_list()
         for crd in crds.items:
             if "hpe.com" in crd.metadata.name:
-                hpe_crds.remove(crd.metadata.name)
                 crd_count += 1
-                Console.output(crd.metadata.name, output_timestamp=False)
+                if crd.metadata.name in hpe_crds:
+                    hpe_crds.remove(crd.metadata.name)
+                    Console.output(crd.metadata.name, output_timestamp=False)
+                else:
+                    crd_str = f"Unexpected CRD: {crd.metadata.name}"
+                    Console.output(f"* {crd_str}", output_timestamp=False)
+                    unexpected_crd_list.append(f"WARNING: {crd_str}")
 
         for crd in hpe_crds:
             facts.append(f"WARNING: HPE custom resource definition '{crd}' does not exist in the system")
-
+        if (len(unexpected_crd_list) > 0):
+            facts.extend(unexpected_crd_list)
+            facts.append("WARNING: Any legitimate unexpected CRDs should be added to DWSUtility")
         facts.append(f"HPE custom resource definitions: {crd_count}")
+
+    def do_investigate_system(self):
+        """Investigate the cluster configuration"""
+        facts = []
+
+        self.investigate_system_configuration(facts)
+
+        self.investigate_nodes(facts)
+
+        self.investigate_pods(facts)
+
+        self.investigate_crds(facts)
+
         # Dump summary of investigation
         Console.output("\nSummary", output_timestamp=False)
         Console.output("-"*20, output_timestamp=False)
@@ -283,14 +296,10 @@ class DWSUtility:
                 Console.output(fact, output_timestamp=False)
         return 0
 
-    def do_investigate_wfr(self):
-        """Investigate the named workflow"""
-        facts = []
-        objects = []
-        expected_but_missing = []
+    def investigate_wfr(self, facts, objects):
+        """Investigate the workflow and report any issues."""
         assign_expected = True
 
-        # Dump out the workflow
         try:
             wfr = self.dws.crd_get_raw("workflows", self.config.wfr_name)
             objects.append(self.object_str("Workflow", f"{wfr['metadata']['namespace']}.{wfr['metadata']['name']}", f"{wfr['metadata']['creationTimestamp']}"))
@@ -300,19 +309,19 @@ class DWSUtility:
 
             if "metadata" not in wfr:
                 Console.error("Workflow does not contain a metadata section", output_timestamp=False)
-                return -1
+                return None, -1, False
 
             if "spec" not in wfr:
                 Console.error("Workflow does not contain a spec section", output_timestamp=False)
-                return -1
+                return None, -1, False
 
             if "status" not in wfr:
                 Console.error("Workflow does not contain a status section", output_timestamp=False)
-                return -1
+                return None, -1, False
 
         except DWSError as ex:
             Console.output(ex.message, output_timestamp=False)
-            return ex.code
+            return None, ex.code, False
 
         if wfr["spec"]["desiredState"] == "proposal":
             assign_expected = False
@@ -330,7 +339,10 @@ class DWSUtility:
         elif len(wfr["spec"]["dwDirectives"]) < 1:
             facts.append("WARNING: No datawarp directives in this workflow")
 
-        # Collect and dump the computes
+        return wfr, 0, assign_expected
+
+    def investigate_computes(self, wfr, facts, objects, assign_expected, expected_but_missing):
+        """Investigate computes and report any issues."""
         try:
             computes = self.dws.crd_get_raw("computes", self.config.wfr_name, "default")
             if len(computes['metadata']['ownerReferences']) > 0:
@@ -349,7 +361,8 @@ class DWSUtility:
             expected_but_missing.append(f"default.computes.{self.config.wfr_name}")
             facts.append(f"WARNING: {ex.message}")
 
-        # Collect and dump the breakdowns
+    def investigate_breakdowns(self, wfr, facts, objects, assign_expected, expected_but_missing):
+        """Investigate directivebreakdowns and report any issues."""
         for bd in wfr["status"]["directiveBreakdowns"]:
             bdname = bd['name']
             bdnamespace = bd['namespace']
@@ -396,6 +409,18 @@ class DWSUtility:
                 expected_but_missing.append(f"{bdnamespace}.directivebreakdowns.{bdname}")
                 facts.append(f"WARNING: {ex.message}")
 
+    def do_investigate_wfr(self):
+        """Investigate the named workflow"""
+        facts = []
+        objects = []
+        expected_but_missing = []
+
+        wfr, retcode, assign_expected = self.investigate_wfr(facts, objects)
+
+        self.investigate_computes(wfr, facts, objects, assign_expected, expected_but_missing)
+
+        self.investigate_breakdowns(wfr, facts, objects, assign_expected, expected_but_missing)
+
         # Dump summary of investigation
         Console.output("\nObjects evaluated", output_timestamp=False)
         Console.output("-"*20, output_timestamp=False)
@@ -419,6 +444,18 @@ class DWSUtility:
                 Console.output(fact, output_timestamp=False)
             for fact in list(filter(lambda x: x.startswith("WARNING"), facts)):
                 Console.output(fact, output_timestamp=False)
+        return 0
+
+    def do_list_storage(self):
+        """Retrieve list of Storage CRs and dump to console."""
+        storage_list = self.dws.storage_list_names()
+        Console.pretty_json({"rabbits": storage_list})
+        return 0
+
+    def do_list_wfr(self):
+        """Retrieve list of Workflow CRs and dump to console."""
+        wfr_list = self.dws.wfr_list_names()
+        Console.pretty_json({"wfrs": wfr_list})
         return 0
 
     def do_get_wfr(self, name):

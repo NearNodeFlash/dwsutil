@@ -131,7 +131,7 @@ class Config:
         self.output_usage_item("-i/--inventory <inventoryfile>", "Override cluster inventory for the simulator using the file provided")
         self.output_usage_item("-j/--jobid <job_id>", "Specify the job id to be used in the Workflow Resource")
         self.output_usage_item("-k/--kcfg <configfile>", "Specify kubernetes configuration file")
-        self.output_usage_item("-kctx <context>", "Kubernetes context to use")
+        self.output_usage_item("--kctx <context>", "Kubernetes context to use")
         self.output_usage_item("--munge", "Automatically add process id to the workflow resource name, default is not to munge")
         self.output_usage_item("--mungecompute", "Munge compute names if they are named 'Compute x', default is not to munge")
         self.output_usage_item("-n/--name <wfr_name>", "Specify the name of the Workflow Resource")
@@ -408,7 +408,7 @@ class Config:
 
                 continue
 
-            if arg in ["-kctx"]:
+            if arg in ["--kctx"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
                     self.usage("A kubernetes context must be specified with the -kctx   e.g. -kctx dp1b")
