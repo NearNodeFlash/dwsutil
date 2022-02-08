@@ -363,6 +363,10 @@ class DWSUtility:
 
     def investigate_breakdowns(self, wfr, facts, objects, assign_expected, expected_but_missing):
         """Investigate directivebreakdowns and report any issues."""
+        if "status" not in wfr or "directiveBreakdowns" not in wfr["status"]:
+            facts.append(f"WARNING: No directiveBreakdowns for Workflow {wfr['metadata']['name']}")
+            return
+
         for bd in wfr["status"]["directiveBreakdowns"]:
             bdname = bd['name']
             bdnamespace = bd['namespace']
