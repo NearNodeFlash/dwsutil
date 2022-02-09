@@ -27,7 +27,6 @@ class Config:
         self.version_string = f"DWS Utility - Version {Config.DWSUTIL_VERSION}"
         self.argv = argv
         self.munge = False
-        self.compute_munge = False
         self.force = False
         self.quiet = False
         self.preview = False
@@ -289,7 +288,6 @@ class Config:
 #        self.output_config_item("SingleThreaded", self.singlethread)
         self.output_config_item("ShowConfig", self.showconfigonly)
         self.output_config_item("Munge WFR names", self.munge)
-        self.output_config_item("Munge Compute names", self.compute_munge)
         self.output_config_item("Allow regexes", self.regexEnabled)
 
     def get_arg(self, index):
@@ -383,10 +381,6 @@ class Config:
 
             if arg in ["--munge"]:
                 self.munge = True
-                continue
-
-            if arg in ["--mungecompute"]:
-                self.compute_munge = True
                 continue
 
             if arg in ["--force"]:
@@ -649,10 +643,6 @@ class Config:
                 munge = self.get_config_entry(cfg, "config", "munge", None)
                 if munge is not None:
                     self.munge = munge
-
-                munge = self.get_config_entry(cfg, "config", "mungecompute", None)
-                if munge is not None:
-                    self.compute_munge = munge
 
                 userid = self.get_config_entry(cfg, "config", "userid", None)
                 if userid is not None:

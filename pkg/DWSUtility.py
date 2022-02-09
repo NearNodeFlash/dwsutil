@@ -91,9 +91,13 @@ class DWSUtility:
         rabbit_nodes = []
         manager_nodes = []
         other_nodes = []
+        kind_env_detected = False
         try:
             nodes = self.dws.node_list()
             for node in nodes.items:
+                if not kind_env_detected and node.metadata.name.lower().startswith("kind"):
+                    kind_env_detected = True
+                    facts.append(f"KIND environment detected (node: {node.metadata.name})")
                 node_count += 1
                 status = "unknown"
                 for condition in node.status.conditions:
@@ -418,10 +422,26 @@ class DWSUtility:
         facts = []
         objects = []
         expected_but_missing = []
+        kind_env_detected = False
+        try:
+            nodes = self.dws.node_list()
+            for node in nodes.items:
+                if node.metadata.name.lower().startswith("kind"):
+                    kind_env_detected = True
+                    facts.append(f"WARNING: KIND environment detected (node named {node.metadata.name})")
+                    break
+        except Exception:
+            pass
 
         wfr, retcode, assign_expected = self.investigate_wfr(facts, objects)
 
-        self.investigate_computes(wfr, facts, objects, assign_expected, expected_but_missing)
+        if not wfr:
+            return -1
+
+        if kind_env_detected:
+            facts.append("WARNING: Compute assignments NOT evaluated for KIND environment")
+        else:
+            self.investigate_computes(wfr, facts, objects, assign_expected, expected_but_missing)
 
         self.investigate_breakdowns(wfr, facts, objects, assign_expected, expected_but_missing)
 
@@ -705,7 +725,7 @@ class DWSUtility:
             source = f"Cluster-{apic.configuration.host}"
         except Exception:
             pass
-        return self.dws.inventory_build_from_cluster(only_ready_nodes, self.config.compute_munge), source
+        return self.dws.inventory_build_from_cluster(only_ready_nodes), source
 
     def do_assign_resources(self):
         """Assign server and compute resources to the specified Workflow CR."""
@@ -714,12 +734,18 @@ class DWSUtility:
         selected_computes = {}
         selected_rabbits = {}
         rabbits, source = self.do_get_inventory(only_ready_nodes=True)
+        kind_env_detected = False
+
         if len(rabbits) < 1:
             msg = f"Inventory from {source} does not contain any nnf nodes that can be assigned"
             raise DWSError(msg, DWSError.DWS_NO_INVENTORY)
 
         # Build a master dict of computes that could be assigned
         for node_name, node in rabbits.items():
+            if not kind_env_detected and node.name.strip().lower().startswith("kind"):
+                kind_env_detected = True
+                Console.debug(Console.MIN, f"Node {node.name} indicates KIND environment, compute nodes WILL NOT be assigned")
+
             if node.name.strip().lower() in self.config.exclude_rabbits:
                 Console.debug(Console.MIN, f"Excluding nnf node {node.name}")
                 continue
@@ -806,8 +832,13 @@ class DWSUtility:
                     Console.debug(Console.WORDY, "compute object name:"
                                                  f" {wfr.compute_obj_name}")
 
-                    node_list = [selected_computes[c]['computeName']
-                                 for c in selected_computes]
+                    if kind_env_detected:
+                        node_list = [f"{selected_computes[c]['computeName']} "
+                                     "(not set in KIND env)"
+                                     for c in selected_computes]
+                    else:
+                        node_list = [selected_computes[c]['computeName']
+                                     for c in selected_computes]
 
                     Console.debug(Console.MIN, f"{self.config.nodes}"
                                   f" compute(s) to be assigned: {node_list}")
@@ -816,7 +847,8 @@ class DWSUtility:
                                   f"{[k[0] for k in selected_rabbits.items()]}")
 
                     if not self.config.preview:
-                        self.dws.wfr_update_computes(wfr, node_list)
+                        if not kind_env_detected:
+                            self.dws.wfr_update_computes(wfr, node_list)
                         self.dws.wfr_update_servers(breakdown,
                                                     alloc.minimumCapacity,
                                                     selected_rabbits)
@@ -835,10 +867,6 @@ class DWSUtility:
     def do_show_inventory(self):
         """Dump the loaded inventory to the console."""
         rabbits, source = self.do_get_inventory()
-        json = {
-                "source": source,
-                "nnfnodes": [{"name": r, "capacity": rabbits[r].capacity, "status": rabbits[r].status, "servers": []} for r in rabbits]
-        }
         json = {
                 "source": source,
                 "nnfnodes": []

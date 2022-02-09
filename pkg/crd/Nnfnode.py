@@ -5,7 +5,6 @@
 # © Copyright 2021 Hewlett Packard Enterprise Development LP
 #
 # -----------------------------------------------------------------
-import math
 import re
 import copy
 
@@ -37,8 +36,6 @@ class Nnfnode:
                 raise(Exception(
                     "raw_nnfnode is missing required ''status' sub-fields for nnf-node"))
             self._raw_nnfnode = copy.deepcopy(raw_nnfnode)
-            self.remaining_storage = self.capacity
-            self.allocationCount = 0
 
             # If we still have garbage compute node names, this will
             # clean them up and make them unique by prefixing them with
@@ -96,14 +93,6 @@ class Nnfnode:
         """Returns the Nnfnode server list without filtering."""
         return self._raw_nnfnode['status']['servers']
 
-    def has_sufficient_capacity(self, requestedCapacity):
-        """Returns True if Nnfnode can meet the requested capacity."""
-        return requestedCapacity < self.remaining_storage
-
-    def allocs_remaining(self, alloc_size):
-        """Computes the remaining allocations based on current capacity."""
-        return math.floor(self.remaining_storage / alloc_size)
-
     def to_json(self):
         """Return a simplified json for this Nnfnode."""
         return {"name": self.name, "status": self.status, "capacity": self.capacity, "computes": self.servers}
@@ -115,6 +104,3 @@ class Nnfnode:
         Console.output(f"    Status: {self._raw_nnfnode['status']['status']}")
         Console.output(f"    is_ready: {self.is_ready}")
         Console.output(f"    Capacity: {self._raw_nnfnode['status']['capacity']}")
-        Console.output(f"    Remaining Storage: {self.remaining_storage}")
-        Console.output(f"    Allocations: {self.allocationCount}")
-        # print(f"    Computes: {self.computes}")

@@ -41,16 +41,6 @@ class TestArgs(unittest.TestCase, TestUtil):
         config = Config(args)
         self.assertEqual(config.munge, True)
 
-    def test_arg_compute_munge_default(self):
-        args = ["dwsutil", "-c", "tests/empty.cfg"]
-        config = Config(args)
-        self.assertEqual(config.compute_munge, False)
-
-    def test_arg_compute_munge(self):
-        args = ["dwsutil", "--mungecompute", "-c", "tests/empty.cfg"]
-        config = Config(args)
-        self.assertEqual(config.compute_munge, True)
-
     def test_arg_quiet_default(self):
         args = ["dwsutil", "-c", "tests/empty.cfg"]
         config = Config(args)

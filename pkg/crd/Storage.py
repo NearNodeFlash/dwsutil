@@ -6,6 +6,7 @@
 #
 # -----------------------------------------------------------------
 import copy
+import math
 
 from ..Console import Console
 
@@ -17,6 +18,8 @@ class Storage:
             if not raw_storage:
                 raise Exception("raw_storage is required")
             self._raw_storage = copy.deepcopy(raw_storage)
+            self.remaining_storage = self.capacity
+            self.allocationCount = 0
 
     @property
     def raw_storage(self):
@@ -34,6 +37,11 @@ class Storage:
         return self.raw_storage['metadata']['name']
 
     @property
+    def status(self):
+        """Returns the storage status."""
+        return self.raw_storage['data']['status']
+
+    @property
     def is_ready(self):
         """Returns True if the Nnfnode is Ready."""
         return self.raw_storage['data']['status'] == "Ready"
@@ -45,12 +53,20 @@ class Storage:
 
     @property
     def computes(self):
-        """Returns the Storage computes list."""
-        return self.raw_storage['data']['access']['computes']
+        """Returns the Nnfnode servers list filtered for computes."""
+        return list(filter(lambda obj: obj['name'] != self.name and not obj['name'].lower().startswith("rabbit"), self.raw_storage['data']['access']['computes']))
 
     def has_sufficient_capacity(self, requestedCapacity):
         """Returns True if Nnfnode can meet the requested capacity."""
-        return True
+        return requestedCapacity < self.remaining_storage
+
+    def allocs_remaining(self, alloc_size):
+        """Computes the remaining allocations based on current capacity."""
+        return math.floor(self.remaining_storage / alloc_size)
+
+    def to_json(self):
+        """Return a simplified json for this Nnfnode."""
+        return {"name": self.name, "status": self.status, "capacity": self.capacity, "computes": self.computes}
 
     def dump_summary(self):
         """Dump object summary to console."""

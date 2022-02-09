@@ -8,6 +8,7 @@
 # -----------------------------------------------------------------
 import copy
 import unittest
+import math
 from unittest.mock import patch
 
 from tests.TestUtil import TestUtil
@@ -181,18 +182,6 @@ class TestCRDs(unittest.TestCase, TestUtil):
         self.create_general_nnfnode()
         self.assertEqual(len(self.general_nnfnode.computes), 1)
 
-    def test_nnfnode_has_sufficient_capacity_true(self):
-        self.create_general_nnfnode()
-        self.assertTrue(self.general_nnfnode.has_sufficient_capacity(1000))
-
-    def test_nnfnode_has_sufficient_capacity_false(self):
-        self.create_general_nnfnode()
-        self.assertFalse(self.general_nnfnode.has_sufficient_capacity(2000000000))
-
-    def test_nnfnode_allocs_remaining(self):
-        self.create_general_nnfnode()
-        self.assertEqual(self.general_nnfnode.allocs_remaining(1000000), 1000)
-
     def test_nnfnode_to_json(self):
         self.create_general_nnfnode()
         json = self.general_nnfnode.to_json()
@@ -305,6 +294,10 @@ class TestCRDs(unittest.TestCase, TestUtil):
         storage = Storage(TestUtil.STORAGE_JSON)
         self.assertTrue(storage.is_ready)
 
+    def test_storage_field_status(self):
+        storage = Storage(TestUtil.STORAGE_JSON)
+        self.assertEqual(storage.status, "Ready")
+
     def test_storage_field_capacity(self):
         storage = Storage(TestUtil.STORAGE_JSON)
         self.assertEqual(storage.capacity, TestUtil.STORAGE_JSON['data']['capacity'])
@@ -316,6 +309,21 @@ class TestCRDs(unittest.TestCase, TestUtil):
     def test_storage_has_sufficient_capacity(self):
         storage = Storage(TestUtil.STORAGE_JSON)
         self.assertTrue(storage.has_sufficient_capacity(1000000))
+
+    def test_storage_allocs_remaining(self):
+        storage = Storage(TestUtil.STORAGE_JSON)
+        allocsize = 1000000000
+        remaining = math.floor( storage.remaining_storage / allocsize )
+        allocsremaining = storage.allocs_remaining(allocsize)
+        self.assertEqual(allocsremaining, remaining)
+
+    def test_storage_to_json(self):
+        storage = Storage(TestUtil.STORAGE_JSON)
+        json = storage.to_json()
+        self.assertEqual(storage.name, json["name"])
+        self.assertEqual(storage.status, json["status"])
+        self.assertEqual(storage.capacity, json["capacity"])
+        self.assertEqual(len(storage.computes), len(json["computes"]))
 
     def test_storage_dump_summary(self):
         storage = Storage(TestUtil.STORAGE_JSON)

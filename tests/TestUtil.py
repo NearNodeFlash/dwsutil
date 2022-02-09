@@ -543,7 +543,7 @@ class TestUtil(object):
                         ]
                     },
                     "capacity": 39582418599936,
-                    "status": "Ready",
+                    "status": "NotReady",
                     "type": "NVMe"
                 },
                 "kind": "Storage",

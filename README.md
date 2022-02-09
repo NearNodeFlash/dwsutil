@@ -81,7 +81,6 @@ config:
   nodes: 1
   regex: true
   inventory: "data/compute_inventory.yaml"
-  mungecomputes: true
   preview: true
   directives:
     - dw: "#DW jobdw type=xfs capacity=5GB name=vm-test-1-raw"
@@ -663,235 +662,6 @@ The following attributes may be specified when creating a Workflow:
 }
 ```
 
-**Display cluster inventory with compute names munged**
-NOTE: In some of the earlier versions, non-unique compute names are implemented.  Use the --mungecompute arg to overcome if so desired.
-```
-$ ./dwsutil.py --context inventory --operation show --mungecompute
-```
-```json
-{
-    "nnfnodes": [
-        {
-            "capacity": 37383395344384,
-            "computes": [
-                {
-                    "health": "OK",
-                    "id": "0",
-                    "name": "Rabbit",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "1",
-                    "name": "kind-worker-Compute-0",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "2",
-                    "name": "kind-worker-Compute-1",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "3",
-                    "name": "kind-worker-Compute-2",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "4",
-                    "name": "kind-worker-Compute-3",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "5",
-                    "name": "kind-worker-Compute-4",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "6",
-                    "name": "kind-worker-Compute-5",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "7",
-                    "name": "kind-worker-Compute-6",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "8",
-                    "name": "kind-worker-Compute-7",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "9",
-                    "name": "kind-worker-Compute-8",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "10",
-                    "name": "kind-worker-Compute-9",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "11",
-                    "name": "kind-worker-Compute-10",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "12",
-                    "name": "kind-worker-Compute-11",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "13",
-                    "name": "kind-worker-Compute-12",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "14",
-                    "name": "kind-worker-Compute-13",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "15",
-                    "name": "kind-worker-Compute-14",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "16",
-                    "name": "kind-worker-Compute-15",
-                    "status": "Ready"
-                }
-            ],
-            "name": "kind-worker",
-            "status": "Ready"
-        },
-        {
-            "capacity": 37378395406336,
-            "computes": [
-                {
-                    "health": "OK",
-                    "id": "0",
-                    "name": "Rabbit",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "1",
-                    "name": "kind-worker2-Compute-0",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "2",
-                    "name": "kind-worker2-Compute-1",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "3",
-                    "name": "kind-worker2-Compute-2",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "4",
-                    "name": "kind-worker2-Compute-3",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "5",
-                    "name": "kind-worker2-Compute-4",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "6",
-                    "name": "kind-worker2-Compute-5",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "7",
-                    "name": "kind-worker2-Compute-6",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "8",
-                    "name": "kind-worker2-Compute-7",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "9",
-                    "name": "kind-worker2-Compute-8",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "10",
-                    "name": "kind-worker2-Compute-9",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "11",
-                    "name": "kind-worker2-Compute-10",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "12",
-                    "name": "kind-worker2-Compute-11",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "13",
-                    "name": "kind-worker2-Compute-12",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "14",
-                    "name": "kind-worker2-Compute-13",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "15",
-                    "name": "kind-worker2-Compute-14",
-                    "status": "Ready"
-                },
-                {
-                    "health": "OK",
-                    "id": "16",
-                    "name": "kind-worker2-Compute-15",
-                    "status": "Ready"
-                }
-            ],
-            "name": "kind-worker2",
-            "status": "Ready"
-        }
-    ],
-    "source": "Cluster-http://192.168.100.12:8080"
-}
 ```
 **Investigate overall system configuration**
 ```
@@ -1348,8 +1118,6 @@ Step 2/9 : ENV PYTHONUNBUFFERED=1
 Successfully tagged arti.dev.cray.com/dwsutil/dwsutil-container-unit-test:0.2
 docker run --rm -t --name container-unit-test  arti.dev.cray.com/dwsutil/dwsutil-container-unit-test:0.2
 dwsutil/dwsutil-container-unit-test:0.2
-test_arg_compute_munge (testArgs.TestArgs) ... ok
-test_arg_compute_munge_default (testArgs.TestArgs) ... ok
 test_arg_configfile (testArgs.TestArgs) ... ok
 test_arg_context (testArgs.TestArgs) ... ok
 test_arg_context_default (testArgs.TestArgs) ... ok
@@ -1393,8 +1161,6 @@ To generate a code coverage report:
 ```make coveragereport```
 ```
 coverage run --branch --timid --source=. --omit=tests/* -m unittest discover -s tests/ -v 2>&1 | tee tests/results.txt
-test_arg_compute_munge (testArgs.TestArgs) ... ok
-test_arg_compute_munge_default (testArgs.TestArgs) ... ok
 test_arg_configfile (testArgs.TestArgs) ... ok
 
 ...

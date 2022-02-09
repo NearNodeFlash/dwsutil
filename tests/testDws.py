@@ -15,7 +15,7 @@ from tests.TestUtil import TestUtil
 # from pkg.Console import Console
 from pkg.Config import Config
 from pkg.Dws import DWS, DWSError
-from pkg.crd.Nnfnode import Nnfnode
+from pkg.crd.Storage import Storage
 from pkg.crd.Workflow import Workflow
 
 
@@ -352,23 +352,22 @@ class TestDWS(unittest.TestCase, TestUtil):
             with patch("kubernetes.client.api.custom_objects_api.CustomObjectsApi.patch_namespaced_custom_object") as function_mock:
                 function_mock.side_effect = self.side_effect_breakdown_get
                 function_mock.return_value = TestUtil.WFR_JSON
-                node = Nnfnode(TestUtil.NNFNODE_JSON)
+                node = Storage(TestUtil.STORAGE_JSON)
                 nodes = {node.name: node}
                 self.dws.wfr_update_servers(breakdown, 1000, nodes)
 
     def test_dws_inventory_build_from_cluster(self):
         with patch("kubernetes.client.api.custom_objects_api.CustomObjectsApi.list_cluster_custom_object") as function_mock:
-            function_mock.return_value = TestUtil.NNFNODELIST_JSON
-            nnfnodelist = self.dws.inventory_build_from_cluster(only_ready_nodes=False, allow_compute_name_munge=False)
+            function_mock.return_value = TestUtil.STORAGELIST_JSON
+            nnfnodelist = self.dws.inventory_build_from_cluster(only_ready_storage=False)
             self.assertEqual(len(nnfnodelist), 2)
             for nodename, node in nnfnodelist.items():
-                self.assertEqual(len(node.servers), 3)
+                self.assertEqual(len(node.computes), 16)
 
     def test_dws_inventory_build_from_cluster_only_ready(self):
         with patch("kubernetes.client.api.custom_objects_api.CustomObjectsApi.list_cluster_custom_object") as function_mock:
-            function_mock.return_value = TestUtil.NNFNODELIST_JSON
-#            Console.verbosity=10
-            nnfnodelist = self.dws.inventory_build_from_cluster(only_ready_nodes=True, allow_compute_name_munge=False)
+            function_mock.return_value = TestUtil.STORAGELIST_JSON
+            nnfnodelist = self.dws.inventory_build_from_cluster(only_ready_storage=True)
             self.assertEqual(len(nnfnodelist), 1)
 
     def test_dws_storage_list_names(self):
@@ -376,8 +375,6 @@ class TestDWS(unittest.TestCase, TestUtil):
             function_mock.return_value = TestUtil.STORAGELIST_JSON
             nnfnodelist = self.dws.storage_list_names()
             self.assertEqual(len(nnfnodelist), 2)
-#            for nodename,node in nnfnodelist.items():
-#                self.assertEqual(len(node.servers), 3)
 
     def test_dws_storage_get(self):
         with patch("kubernetes.client.api.custom_objects_api.CustomObjectsApi.get_namespaced_custom_object") as function_mock:

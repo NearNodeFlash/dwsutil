@@ -17,7 +17,6 @@ from .Console import Console
 from .crd.Workflow import Workflow
 from .crd.DirectiveBreakdown import DirectiveBreakdown
 from .crd.Storage import Storage
-from .crd.Nnfnode import Nnfnode
 
 
 class DWSError(Exception):
@@ -143,7 +142,7 @@ class DWS:
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)  # pragma: no cover
 
     # Inventory Routines
-    def inventory_build_from_cluster(self, only_ready_nodes=False, allow_compute_name_munge=True, group="nnf.cray.hpe.com", version="v1alpha1"):
+    def inventory_build_from_cluster(self, only_ready_storage=False, group="dws.cray.hpe.com", version="v1alpha1"):
         """Retrieve and build the inventory tree from the cluster.
 
         Parameters:
@@ -158,15 +157,15 @@ class DWS:
             nnf_inventory = {}
             crd_api = k8s_client.CustomObjectsApi()
             try:
-                nnfnode_list = crd_api.list_cluster_custom_object(group, version, "nnfnodes")
+                storage_list = crd_api.list_cluster_custom_object(group, version, "storages")
                 # Console.pretty_json(nnfnode_list)
-                for nnf_node in nnfnode_list['items']:
-                    node_obj = Nnfnode(nnf_node, allow_compute_name_munge=allow_compute_name_munge)
-                    if only_ready_nodes and not node_obj.is_ready:
-                        Console.debug(Console.MIN, f"...nnf-node {node_obj.name}"
+                for storage in storage_list['items']:
+                    storage_obj = Storage(storage)
+                    if only_ready_storage and not storage_obj.is_ready:
+                        Console.debug(Console.MIN, f"...storage-node {storage_obj.name}"
                                                    " is not ready, skipping")
                         continue
-                    nnf_inventory[node_obj.name] = node_obj
+                    nnf_inventory[storage_obj.name] = storage_obj
                 return nnf_inventory
             except k8s_client.exceptions.ApiException as err:  # pragma: no cover
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
