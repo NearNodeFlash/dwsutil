@@ -62,8 +62,13 @@ By default, dwsutil.py will look for a configuration file named dwsutil.cfg.  Th
 
 Many of the command line options may be specified in a configuration file. 
 - All of the fields are optional and have defaults in dwsutil
-- Individual items may be commented out with a '#'
+- Individual items in a config file may be commented out with a '#'
 - The path for the k8s config file may contain environment variables
+- The following variable replacements are supported in wfrname, #dw, jobid, and userid (applies to config and command line args)
+  - $(startime) - The time dwsutil was started in the form yyyymmddhhmmss
+  - $(time) - The current date time in the form yyyymmddhhmmssW where W is a unique integer counter for uniqueness
+  - $(randint) - A random integer value between 0 and sys.maxsize
+  - $(randintid) - A random integer value between 1000 and 9999
 
 The following is an example configuration containing most of the configurable items:
 ```yaml
@@ -72,9 +77,9 @@ k8s:
   context: kind-vm
 config:
   userid: 1001
-  jobid: 987
+  jobid: $(randintid)
   wlmid: "flux01"
-  wfrname: "mywfr"
+  wfrname: "testwfr-$(starttime)"
   pretty: true
   quiet: true
   munge: false
@@ -83,13 +88,100 @@ config:
   inventory: "data/compute_inventory.yaml"
   preview: true
   directives:
-    - dw: "#DW jobdw type=xfs capacity=5GB name=vm-test-1-raw"
+    - dw: "#DW jobdw type=xfs capacity=5GB name=xfs-$(time)"
+    - dw: "#DW jobdw type=xfs capacity=20GB name=xfs-$(time)"
   exclude_computes:
     - name: "Compute 0"
     - name: "Compute 3"
   exclude_rabbits:
     - name: "rabbit-node-0"
     - name: "rabbit-node-123"
+```
+
+The previous configuration displayed by dwsutil to illustrate variable replacement:
+```
+$ ./dwsutil.py -c example.cfg --showconfig
+DWS API Endpoint....: https://127.0.0.1:53384
+config file.........: example.cfg                    ( CLI )
+k8s config file.....: /Users/SomeUser/.kube/config      ( Config file )
+K8S default.........:
+Available contexts..: []
+Using K8S context...: kind-vm                        ( Config file )
+Preview.............: True
+Context.............: WFR
+Operation...........:
+...Count............: 1
+WFR name............: testwfr-20220214121617
+WLM id..............: flux01
+Job id..............: 3645
+User id.............: 1001
+# of nodes..........: 1
+Exclude computes....: ['compute 0', 'compute 3']
+Exclude rabbits.....: ['rabbit-node-0', 'rabbit-node-123']
+Inventory file......: data/compute_inventory.yaml
+dw directive........: #DW jobdw type=xfs capacity=5GB name=xfs-202202141216179
+dw directive........: #DW jobdw type=xfs capacity=20GB name=xfs-2022021412161710
+ShowConfig..........: True
+Munge WFR names.....: False
+Allow regexes.......: True
+```
+
+## Command completion
+DWS Utility supports bash command completion for many arguments.  To use command completion, you must perform the following 2 steps:
+```
+source dwsutil-completion.bash
+complete -o nospace -o bashdefault -o default -F _comp_dwsutil dwsutil.py
+```
+
+Some examples:
+```
+$ ./dwsutil.py --<TAB><TAB>
+--config       --exr          --kcfg         --name         --notimestamp  --pretty       --userid
+--context      --inventory    --kctx         --node         --opcount      --regex        --version
+--exc          --jobid        --munge        --noreuse      --operation    --showconfig   --wlmid
+
+$ ./dwsutil.py --op<TAB><TAB>
+--opcount    --operation
+
+$ ./dwsutil.py --operation<TAB><TAB>
+assignresources   create            delete            get               investigate       list              progress          progressteardown
+```
+Command completion is context sensitive and will change response according to the context:
+```
+$ ./dwsutil.py --context system --operation i<TAB>
+
+$ ./dwsutil.py --context system --operation investigate
+```
+You can partially type an operation and command completion with suggest operations for you:
+```
+$ ./dwsutil.py --operation progress<TAB><TAB>
+progress          progressteardown
+```
+Command completion is even smart enough to query HPE workflows
+- This function will first use any kube config provided by the -k option
+- Then it will attempt to pull a k8s config from any -c config specified
+- Finally it will use the default kube configuration
+
+**Note: This functionality is experimental and may be a bit broken**
+```
+$ ./dwsutil.py --operation progressteardown -n<TAB><TAB>
+example  tst1     tst2
+
+$ ./dwsutil.py --operation progressteardown -n tst<TAB><TAB>
+tst1  tst2
+
+$ ./dwsutil.py --operation progressteardown -n tst1
+{
+    "action": "progressteardown",
+    "preview": false,
+    "results": [
+        {
+            "message": "Workflow 'tst1' progressed from 'proposal' to 'teardown'",
+            "name": "tst1",
+            "result": "succeeded"
+        }
+    ]
+}
 ```
 
 ## Basic DWS Utility usage

@@ -9,9 +9,12 @@
 #
 # -----------------------------------------------------------------
 
+import os
+import sys
+import datetime
+import random
 import json
 import yaml
-import os
 
 from .Console import Console
 
@@ -22,6 +25,12 @@ class Config:
     K8S_VERSION = "v1alpha1"
     DWSUTIL_VERSION = "0.2"
 
+    def infinite_sequence():
+        num = random.randint(0, 9)
+        while True:
+            yield num
+            num += 1
+
     def __init__(self, argv):
         self.version_number = "0.2"
         self.version_string = f"DWS Utility - Version {Config.DWSUTIL_VERSION}"
@@ -31,6 +40,13 @@ class Config:
         self.quiet = False
         self.preview = False
         self.show_version = False
+        self.seq_gen = Config.infinite_sequence()
+
+        self.var_startime = "$(starttime)"
+        self.var_time = "$(time)"
+        self.var_randint = "$(randint)"
+        self.var_randintid = "$(randintid)"
+        self.starttime = '{0:%Y%m%d%H%M%S}'.format(datetime.datetime.now())
 
         self.short_name = "dwsutil"
         self.long_name = "DWS Utility"
@@ -65,6 +81,7 @@ class Config:
         self.nodes = 1
         self.nodelist = None
         self.pretty = True
+        self.reuse_rabbit = False
 
         self.operation_count = 1
         self.singlethread = False
@@ -77,6 +94,15 @@ class Config:
         self.process_commandline(init_flags_only=False)
 
         self.evaluate_configuration()
+
+    def replace_vars(self, str):
+        str = str.replace(self.var_startime, self.starttime)
+        str = str.replace(self.var_time, ('{0:%Y%m%d%H%M%S}'.format(datetime.datetime.now()))+f"{next(self.seq_gen)}")
+        val = random.randint(10000, sys.maxsize)
+        str = str.replace(self.var_randint, f"{val}")
+        val = 1000 + random.randint(1, 8999) % 10000
+        str = str.replace(self.var_randintid, f"{val}")
+        return str
 
     def output_usage_item(self, item, desc):
         """Output a formatted CLI parameter with it's description.
@@ -125,9 +151,9 @@ class Config:
         Console.outputnotsp("usage: dwsutil.py <options>")
         self.output_usage_item("-?", "Display this usage")
         self.output_usage_item("-c/--config <configfile>", "Specify simulator configuration file")
-        self.output_usage_item("-dw '#DW ....'", "Add a DataWarp directive, may occur multiple times")
-        self.output_usage_item("-exr rabbit1,rabbit2,...rabbitN", "Exclude the listed rabbits when assigning resources")
-        self.output_usage_item("-exc compute1,compute2,...computeN", "Exclude the listed computes when assigning resources")
+        self.output_usage_item("--dw '#DW ....'", "Add a DataWarp directive, may occur multiple times")
+        self.output_usage_item("--exr rabbit1,rabbit2,...rabbitN", "Exclude the listed rabbits when assigning resources")
+        self.output_usage_item("--exc compute1,compute2,...computeN", "Exclude the listed computes when assigning resources")
 #        self.output_usage_item("--force", "Force an operation that would ordinarily be prevented")
         self.output_usage_item("-i/--inventory <inventoryfile>", "Override cluster inventory for the simulator using the file provided")
         self.output_usage_item("-j/--jobid <job_id>", "Specify the job id to be used in the Workflow Resource")
@@ -143,6 +169,7 @@ class Config:
         self.output_usage_item("--pretty", "Format JSON output")
         self.output_usage_item("-q", "Suppress non-operational output")
         self.output_usage_item("--regex", "Enable regex pattern matching for operations that allow regexes")
+        self.output_usage_item("--noreuse", "Do not use the same rabbit for lustre components if possible")
         self.output_usage_item("--showconfig", "Show configuration and quit without doing anything")
 #        self.output_usage_item("--singlethread", "Do not multithread bulk operations")
         self.output_usage_item("-u/--userid <user_id>", "Specify the user id to be used in the Workflow Resource")
@@ -212,12 +239,14 @@ class Config:
             if not os.path.exists(self.k8s_config):
                 self.usage(f"Kubernetes configuration file '{self.k8s_config}' does not exist")
 
-        if self.context == "WFR" and self.operation in ["CREATE", "GET", "ASSIGNRESOURCES", "DELETE", "PROGRESS", "PROGRESSTEARDOWN"]:
+        if self.context == "WFR" and self.operation in ["CREATE", "GET", "ASSIGNRESOURCES", "DELETE", "PROGRESS", "PROGRESSTEARDOWN", "INVESTIGATE"]:
             if self.wfr_name is None or self.wfr_name.strip() == '':
                 self.usage(f"Workflow name is required for operation {self.operation}")
 
         if self.munge and self.wfr_name != "":
             self.wfr_name = f"{self.wfr_name}-{os.getpid()}"
+
+        self.wfr_name = self.replace_vars(self.wfr_name)
 
         if self.inventory_file is not None:
             if not os.path.exists(self.inventory_file):
@@ -371,6 +400,10 @@ class Config:
                 self.preview = True
                 continue
 
+            if arg in ["--noreuse"]:
+                self.reuse_rabbit = False
+                continue
+
 #            if arg in ["--singlethread"]:
 #                self.singlethread = True
 #                continue
@@ -438,14 +471,16 @@ class Config:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
                     self.usage("A datawarp directive must be specified with -n   e.g. -dw \"#DW ...some directive\"")
-                self.dwdirectives.append(arg)
+                self.dwdirectives.append(self.replace_vars(arg))
                 continue
 
             if arg in ["-j", "--jobid"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
                     self.usage("A Job id name must be specified with -n   e.g. -j 5432")
-                self.job_id = int(arg)
+
+                print(arg)
+                self.job_id = int(self.replace_vars(arg))
                 continue
 
             if arg in ["-w", "--wlmid"]:
@@ -494,7 +529,7 @@ class Config:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
                     self.usage("A User id name must be specified with -n   e.g. -u 1001")
-                self.user_id = int(arg)
+                self.user_id = int(self.replace_vars(arg))
                 continue
 
             if arg in ["--showconfig"]:
@@ -646,10 +681,14 @@ class Config:
 
                 userid = self.get_config_entry(cfg, "config", "userid", None)
                 if userid is not None:
+                    if (isinstance(userid, str)):
+                        userid = int(self.replace_vars(userid))
                     self.user_id = userid
 
                 jobid = self.get_config_entry(cfg, "config", "jobid", None)
                 if jobid is not None:
+                    if (isinstance(jobid, str)):
+                        jobid = int(self.replace_vars(jobid))
                     self.job_id = jobid
 
                 wlmid = self.get_config_entry(cfg, "config", "wlmid", None)
@@ -668,10 +707,14 @@ class Config:
                 if regex is not None:
                     self.regexEnabled = regex
 
+                reuse = self.get_config_entry(cfg, "config", "reuse_rabbit", None)
+                if reuse is not None:
+                    self.reuse_rabbit = reuse
+
                 directives = self.get_config_entry(cfg, "config", "directives", None)
                 if directives is not None:
                     for directive in directives:
-                        self.dwdirectives.append(directive["dw"])
+                        self.dwdirectives.append(self.replace_vars(directive["dw"]))
 
                 excludes = self.get_config_entry(cfg, "config", "exclude_computes", None)
                 if excludes is not None:
@@ -684,4 +727,4 @@ class Config:
                         self.exclude_rabbits.append(exclude["name"])
 
     def to_json(self):
-        return json.dumps(self.__dict__)
+        return json.dumps({x: self.__dict__[x] for x in self.__dict__ if x not in ['seq_gen']})

@@ -54,7 +54,7 @@ class Storage:
     @property
     def computes(self):
         """Returns the Nnfnode servers list filtered for computes."""
-        return list(filter(lambda obj: obj['name'] != self.name and not obj['name'].lower().startswith("rabbit"), self.raw_storage['data']['access']['computes']))
+        return list(filter(lambda obj: obj['name'] != self.name, self.raw_storage['data']['access']['computes']))
 
     def has_sufficient_capacity(self, requestedCapacity):
         """Returns True if Nnfnode can meet the requested capacity."""

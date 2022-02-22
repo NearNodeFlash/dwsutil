@@ -173,7 +173,7 @@ class Console:
 
         print(f"{tsp}{msg_prefix}{msg}")
 
-    def pretty_json(dict, output_timestamp=False):
+    def pretty_json(dict, indent=4, output_timestamp=False):
         """Send json to the console.  If Console.pretty is true, it is
             formatted, otherwise it is just dumped.
 
@@ -184,7 +184,7 @@ class Console:
         Nothing
         """
         if Console.pretty:
-            Console.output(json.dumps(dict, indent=4, sort_keys=True), output_timestamp=False)
+            Console.output(json.dumps(dict, indent=indent, sort_keys=True), output_timestamp=False)
         else:
             Console.output(json.dumps(dict), output_timestamp=False)
 

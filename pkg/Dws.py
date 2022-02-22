@@ -29,6 +29,7 @@ class DWSError(Exception):
     DWS_INCOMPLETE = 105
     DWS_NO_INVENTORY = 106
     DWS_SOME_OPERATION_FAILED = 107
+    DWS_INSUFFICIENT_RESOURCES = 108
 
     DWS_K8S_ERROR = 500
 
@@ -158,7 +159,8 @@ class DWS:
             crd_api = k8s_client.CustomObjectsApi()
             try:
                 storage_list = crd_api.list_cluster_custom_object(group, version, "storages")
-                # Console.pretty_json(nnfnode_list)
+                Console.pretty_json(storage_list)
+
                 for storage in storage_list['items']:
                     storage_obj = Storage(storage)
                     if only_ready_storage and not storage_obj.is_ready:
@@ -502,7 +504,34 @@ class DWS:
             api_response = self.k8sapi.patch_namespaced_custom_object(group, version, compute_namespace, "computes", compute_name, body_json)
             Console.debug(Console.WORDY, api_response)
 
-    def wfr_update_servers(self, breakdown, minimumAlloc, nnfnodes, group="dws.cray.hpe.com", version="v1alpha1"):
+    def wfr_update_servers(self, breakdown, group="dws.cray.hpe.com", version="v1alpha1"):
+        """Update servers(nnfnodes) for a given Workflow.
+
+        Parameters:
+        wfr : Workflow to update computes for
+        nnfnodes : List of servers nnfnodes for the Workflow
+
+        Returns:
+        Nothing
+        """
+
+        with Console.trace_function():
+            serverName, serverNamespace = breakdown['serverObj']
+
+            bodyJson = {
+                "spec": {"allocationSets": breakdown["allocationSet"]}
+            }
+
+            if Console.level_enabled(Console.WORDY):
+                Console.pretty_json(bodyJson)
+                Console.output(Console.HALF_BAR)
+
+            api_response = self.k8sapi.patch_namespaced_custom_object(group, version, serverNamespace, "servers", serverName, bodyJson)
+
+            Console.debug(Console.WORDY, api_response)
+
+    # TODO: Remove
+    def wfr_update_servers_orig(self, breakdown, minimumAlloc, nnfnodes, group="dws.cray.hpe.com", version="v1alpha1"):
         """Update servers(nnfnodes) for a given Workflow.
 
         Parameters:

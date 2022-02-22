@@ -57,7 +57,7 @@ class DWSUtility:
 
     def dump_config_as_json(self):
         """Dump the current configuration to the console as json."""
-        Console.debug(Console.WORDY, f"Configuration: {self.config.to_json()}")
+        Console.debug(Console.MAX, f"Configuration: {self.config.to_json()}")
 
     def object_str(self, objtype, name, created="n/a", owner="n/a", not_found=False):
         """Convenience method for formatting object information."""
@@ -729,10 +729,11 @@ class DWSUtility:
 
     def do_assign_resources(self):
         """Assign server and compute resources to the specified Workflow CR."""
-        assign_results = []
-        computes = []
-        selected_computes = {}
-        selected_rabbits = {}
+        computes = []  # Master list of compute nodes
+        selected_computes = {}  # Computes are selected for the workflow
+        server_updates = [] # 1 for each Directive Breakdown
+
+        Console.debug(Console.WORDY, "Retrieving inventory")
         rabbits, source = self.do_get_inventory(only_ready_nodes=True)
         kind_env_detected = False
 
@@ -741,6 +742,364 @@ class DWSUtility:
             raise DWSError(msg, DWSError.DWS_NO_INVENTORY)
 
         # Build a master dict of computes that could be assigned
+        Console.debug(Console.WORDY, f"Building master list of nnf and compute nodes, {len(rabbits)} NNF nodes available")
+        for node_name, node in rabbits.items():
+            if not kind_env_detected and node.name.strip().lower().startswith("kind"):
+                kind_env_detected = True
+                Console.debug(Console.MIN, f"Node {node.name} indicates KIND environment, compute nodes WILL NOT be assigned")
+
+            if node.name.strip().lower() in self.config.exclude_rabbits:
+                Console.debug(Console.MIN, f"Excluding nnf node {node.name}")
+                continue
+
+            for c in node.computes:
+                if c["status"] != "Ready":
+                    Console.debug(Console.MIN,
+                                  f"...compute {c['computeName']} is"
+                                  " not ready and will be skipped")
+                    continue
+
+                if c['name'].strip().lower() in self.config.exclude_computes:
+                    Console.debug(Console.MIN, f"...Excluding compute node {c['name']}")
+                    continue
+
+                compute = {"storageName": node.name,
+                           "computeName": c['name'],
+                           "computeStatus": c['status']}
+                Console.debug(Console.WORDY, f"...adding {node.name}: {c['name']} to list")
+                computes.append(compute)
+
+        if len(computes) < self.config.nodes:
+            msg = f"There are only {len(computes)} compute nodes available, however {self.config.nodes} computes has been specified."
+            raise DWSError(msg, DWSError.DWS_INCOMPLETE)
+
+        Console.debug(Console.WORDY, "Retrieving workflow"
+                                     f" {self.config.wfr_name}")
+        wfr = self.dws.wfr_get(self.config.wfr_name)
+        Console.debug(Console.WORDY, "compute object name:"
+                                     f" {wfr.compute_obj_name}")
+
+        Console.debug(Console.WORDY, "Processing directive breakdowns")
+        breakdowns = self.dws.wfr_get_directiveBreakdowns(wfr)
+        if len(breakdowns) == 0:
+            msg = f"Workflow Resource named '{wfr.name}' has no directive breakdowns"
+            raise DWSError(msg, DWSError.DWS_INCOMPLETE)
+
+        all_breakdown_allocations = []
+        label_constrained_nodes = {}
+
+        # Iterate each directive breakdown (1 per #dw)
+        for breakdown in breakdowns:
+            Console.debug(Console.WORDY, Console.FULL_BAR)
+            Console.debug(Console.WORDY, f"Processing breakdown {breakdown.name}")
+            allocations = breakdown.allocationSet
+            breakdown_allocations = {"name": breakdown.name, "serverObj": breakdown.server_obj, "allocationSet": []}
+            all_breakdown_allocations.append(breakdown_allocations)
+            compute_nodes = []
+            rabbits_in_breakdown = {}
+            alloc_idx = 0
+            across_servers = []
+            single_server = []
+            per_compute = []
+
+            # Collect the allocations for this directive breakdown
+            for alloc in allocations:
+
+                alloc_idx += 1
+                Console.debug(Console.WORDY, f"...collecting allocation {alloc_idx}, type {alloc.label} - {alloc.allocationStrategy}")
+                if alloc.is_across_servers:
+                    across_servers.append(alloc)
+
+                elif alloc.is_single_server:
+                    single_server.append(alloc)
+
+                elif alloc.is_per_compute:
+                    per_compute.append(alloc)
+
+            # *****************************************************************
+            # Address per compute allocations first, they have no constraints
+            # *****************************************************************
+            if len(per_compute) == 0:
+                Console.debug(Console.WORDY, "No 'AllocatePerCompute' to process")
+            else:
+                Console.debug(Console.WORDY, "Processing 'AllocatePerCompute'")
+                Console.debug(Console.WORDY, "-"*40)
+                selected_rabbits = {}  # Rabbits are selected per allocation
+                for alloc in per_compute:
+                    for c in computes:
+                        rabbit_name = c["storageName"]
+                        r = rabbits[rabbit_name]
+
+                        Console.debug(Console.WORDY, f"   looking at compute {c['computeName']} on rabbit {rabbit_name}")
+
+                        # If this rabbit has adequate capacity
+                        if r.has_sufficient_capacity(alloc.minimumCapacity):
+                            # Composite key protects against duplicates
+                            compute_key = f"{rabbit_name}-{c['computeName']}"
+
+                            selected_computes[compute_key] = c
+
+                            # Increase the allocation count for this rabbit
+                            if r.name in selected_rabbits:
+                                rabbit = selected_rabbits[r.name]
+                                rabbit['allocationCount'] += 1
+                            else:
+                                rabbit = {"name": r.name, "allocationCount": 1}
+                            selected_rabbits[r.name] = rabbit
+                            rabbits_in_breakdown[r.name] = rabbit
+                            r.remaining_storage -= alloc.minimumCapacity
+                            r.allocationCount += 1
+
+                            Console.debug(Console.WORDY, f"   selecting compute node '{c['computeName']}' on '{rabbit_name}', {len(selected_computes)} of {self.config.nodes} selected")
+                            Console.debug(Console.WORDY, f"   rabbit remaining storage: {r.remaining_storage}")
+                        else:
+                            Console.debug(Console.MIN, f"   rabbit {rabbit_name} has"
+                                        " insufficient storage to be considered")
+
+                        # If we selected the specified number of nodes....
+                        if len(selected_computes) == self.config.nodes:
+                            Console.debug(Console.MIN, f"{self.config.nodes}"
+                                            " computes successfully selected")
+                            break
+                    # If we went through all of our rabbits and still didn't find
+                    # enough compute nodes, the assign cannot be completed
+                    if len(selected_computes) != self.config.nodes:
+                        msg = "There are not enough compute nodes in a ready"\
+                            f" state to meet the required node count of"\
+                            f" {self.config.nodes}"
+                        raise DWSError(msg, DWSError.DWS_INSUFFICIENT_RESOURCES)
+
+
+                    if kind_env_detected:
+                        compute_nodes = [f"{selected_computes[c]['computeName']} "
+                                    "(not set in KIND env)"
+                                    for c in selected_computes]
+                    else:
+                        compute_nodes = [selected_computes[c]['computeName']
+                                    for c in selected_computes]
+
+                    Console.debug(Console.MAX, f"{self.config.nodes}"
+                                f" compute(s) to be assigned: {compute_nodes}")
+                    Console.debug(Console.MIN, " nnfnode(s) to be assigned: "
+                                f"{[k[0] for k in selected_rabbits.items()]}")
+
+                assignment = {"label": alloc.label, "allocationSize": alloc.minimumCapacity, "storage": [selected_rabbits[x] for x in selected_rabbits]}
+                breakdown_allocations["allocationSet"].append(assignment)
+                if Console.level_enabled(Console.WORDY):
+                    Console.debug(Console.WORDY, "AllocatePerCompute details:")
+                    Console.pretty_json(assignment)
+
+            # *****************************************************************
+            # Address single server allocations (e.g. MGT/MDT)
+            # *****************************************************************
+            if len(single_server) == 0:
+                Console.debug(Console.WORDY, "No 'AllocateSingleServer' to process")
+            else:
+                Console.debug(Console.WORDY, "Processing 'AllocateSingleServer'")
+                Console.debug(Console.WORDY, "-"*40)
+                idx = 0
+                all_selected_rabbits = {}
+                for alloc in single_server:
+                    idx += 1
+                    selected_rabbits = {}  # Rabbits are selected per allocation
+                    Console.debug(Console.MIN, f"   Processing allocation {idx}: {alloc.label}")
+                    # Determine if this allocation type cannot coexist
+                    if alloc.has_colocation_constraints:
+                        Console.debug(Console.MIN, f"   Allocation {alloc.label} has colocation constraints")
+                        if alloc.label not in label_constrained_nodes:
+                            Console.debug(Console.MIN, f"   Added constraint label {alloc.label}")
+                            label_constrained_nodes[alloc.label] = []
+
+                    # Scan rabbits to see if we have a place for this allocation
+                    idx = 0
+                    for node_name, r in rabbits.items():
+                        Console.debug(Console.MIN, f"   Looking at rabbit {node_name} for {alloc.label}")
+                        rabbit_eligible = True
+                        idx += 1
+
+                        # Determine if this rabbit is eligible from a 
+                        # colocation constraint perspective
+                        if alloc.has_colocation_constraints and node_name in label_constrained_nodes[alloc.label]:
+                            rabbit_eligible = False
+                            Console.debug(Console.MIN, f"     Rabbit is not eligible as it already has an {alloc.label}")
+                            continue
+
+                        # In the interest of distributing components across 
+                        # rabbits, see if the user wants to reuse or not reuse
+                        # rabbits for Single Server allocations.  Controlled
+                        # by the --noreuse flag
+                        if rabbit_eligible and node_name in all_selected_rabbits and (not self.config.reuse_rabbit) and idx < len(rabbits):
+                            rabbit_eligible = False
+                            Console.debug(Console.MIN, "     Rabbit is eligible but has already been used and --noreuse specified")
+                            continue
+
+                        if rabbit_eligible:
+                            Console.debug(Console.MIN, "     Rabbit is eligible")
+                            # We found a rabbit to host this allocation
+
+                            # If this rabbit has adequate capacity
+                            if r.has_sufficient_capacity(alloc.minimumCapacity):
+                                # Increase the allocation count for this rabbit
+                                rabbit = {"name": r.name, "allocationCount": 1}
+                                selected_rabbits[r.name] = rabbit
+                                all_selected_rabbits[r.name] = rabbit
+                                rabbits_in_breakdown[r.name] = rabbit
+
+                                r.remaining_storage -= alloc.minimumCapacity
+                                r.allocationCount += 1
+
+                                Console.debug(Console.WORDY, f"   Selecting '{node_name}' for allocation type '{alloc.label}'")
+                                Console.debug(Console.WORDY, f"   Rabbit remaining storage: {r.remaining_storage}")
+
+                                # If we haven't filled out our computes yet,
+                                # lets go after them from this Rabbit
+                                if len(compute_nodes) < self.config.nodes:
+                                    for c in r.computes:
+                                        if c["status"] == "Ready" and\
+                                           c['name'] not in compute_nodes:
+                                            Console.debug(Console.WORDY, f"   Adding compute {c['name']} for assignment")
+                                            compute_nodes.append(c['name'])
+                                            if len(compute_nodes) >= self.config.nodes:
+                                                break
+                            else:
+                                Console.debug(Console.MIN, f"   rabbit {node_name} has"
+                                            " insufficient storage to be considered")
+
+                        Console.debug(Console.MIN, "   nnfnode(s) to be assigned: "
+                                    f"{[k[0] for k in selected_rabbits.items()]}")
+
+                        assignment = {"label": alloc.label, "allocationSize": alloc.minimumCapacity, "storage": [selected_rabbits[x] for x in selected_rabbits]}
+                        breakdown_allocations["allocationSet"].append(assignment)
+                        if Console.level_enabled(Console.WORDY):
+                            Console.debug(Console.WORDY, f"   allocation {idx} details:")
+                            Console.pretty_json(assignment)
+                        break
+                        Console.debug(Console.WORDY, "-"*40)
+
+                    if len(selected_rabbits) == 0:
+                        msg = f"Unable to locate a rabbit to serve '{alloc.label}'"
+                        raise DWSError(msg, DWSError.DWS_INSUFFICIENT_RESOURCES)
+
+            # *****************************************************************
+            # Address allocations across servers (e.g. OST)
+            # *****************************************************************
+            if len(across_servers) == 0:
+                Console.debug(Console.WORDY, "No 'AllocateAcrossServers' to process")
+            else:
+                Console.debug(Console.WORDY, "Processing 'AllocateAcrossServers'")
+                Console.debug(Console.WORDY, "-"*40)
+                for alloc in across_servers:
+                    selected_rabbits = {}  # Rabbits are selected per allocation
+
+                    # Determine if selected rabbits can handle remaining capacity
+                    min_capacity = reduce(lambda a, b: a if a < b else b, [rabbits[r].capacity for r in rabbits_in_breakdown])
+                    Console.debug(Console.WORDY, f"Min capacity of selected rabbits: {min_capacity}")
+                    max_capacity = reduce(lambda a, b: a if a > b else b, [rabbits[r].capacity for r in rabbits_in_breakdown])
+                    Console.debug(Console.WORDY, f"Max capacity of selected rabbits: {max_capacity}")
+
+                    # If the selected rabbits can handle the allocations
+                    alloc_size = alloc.minimumCapacity / len(rabbits_in_breakdown)
+                    if alloc_size < min_capacity:
+                        for rname in rabbits_in_breakdown:
+                            r = rabbits[rname]
+                            rabbit = {"name": r.name, "allocationCount": 1}
+                            selected_rabbits[r.name] = rabbit
+                            rabbits_in_breakdown[r.name] = rabbit
+
+                            r.remaining_storage -= alloc_size
+                            r.allocationCount += 1
+
+                            Console.debug(Console.WORDY, f"   Selecting '{r.name}' for allocation type '{alloc.label}'")
+                            Console.debug(Console.WORDY, f"   Rabbit remaining storage: {r.remaining_storage}")
+
+                        assignment = {"label": alloc.label, "allocationSize": round(alloc_size), "storage": [selected_rabbits[x] for x in selected_rabbits]}
+                        breakdown_allocations["allocationSet"].append(assignment)
+                        if Console.level_enabled(Console.WORDY):
+                            Console.debug(Console.WORDY, "AllocateSingleServer details:")
+                            Console.pretty_json(assignment)
+
+                        continue
+
+                    if len(selected_rabbits) == 0:
+                        msg = f"Unable to locate enough rabbits to meet capacity {alloc.minimumCapacity} for '{alloc.label}'"
+                        raise DWSError(msg, DWSError.DWS_INSUFFICIENT_RESOURCES)
+
+            # All allocations processed
+            Console.debug(Console.MIN, f"All allocations processed for {breakdown.name}")
+            if Console.level_enabled(Console.MIN):
+                Console.pretty_json(all_breakdown_allocations)
+                Console.output(Console.FULL_BAR)
+
+            # If we haven't filled out our computes yet,
+            # lets go after them from this Rabbit
+            if len(compute_nodes) < self.config.nodes:
+                for rabbit_name, r in rabbits.items():
+                    if len(compute_nodes) >= self.config.nodes:
+                        break
+                    for c in r.computes:
+                        if c["status"] == "Ready" and\
+                            c['name'] not in compute_nodes:
+                            Console.debug(Console.WORDY, f"   Adding compute {c['name']} for assignment")
+                            compute_nodes.append(c['name'])
+                            if len(compute_nodes) >= self.config.nodes:
+                                break
+
+            # See if we met our compute node requirement
+            if len(compute_nodes) < self.config.nodes:
+                msg = f"There are only {len(compute_nodes)} compute nodes available, however {self.config.nodes} computes has been specified."
+                raise DWSError(msg, DWSError.DWS_INSUFFICIENT_RESOURCES)
+
+            alloc_idx = 0
+            final_allocations = []
+            for ba in all_breakdown_allocations:
+                    svr_results = {'name': breakdown.name, "alloc": alloc_idx, "result": "succeeded", "allocationSet": ba}
+                    if not self.config.preview:
+                        try:
+                            self.dws.wfr_update_servers(ba)
+                        except DWSError as ex:
+                            svr_results = {'name': breakdown.name, "alloc": alloc_idx, "result": "failed", "message": ex.message}
+                    else:
+                        Console.debug(Console.MIN, f"Preview mode: nnf resources not actually assigned to WFR {wfr.name}")
+                    alloc_idx += 1
+
+                    final_allocations.append(svr_results)
+
+        assign_results = {'name': wfr.name,
+                          'result': 'succeeded',
+                          'computes': compute_nodes,
+                          'breakdowns': all_breakdown_allocations}
+
+        if not self.config.preview:
+            if not kind_env_detected:
+                self.dws.wfr_update_computes(wfr, compute_nodes)
+            else:
+                Console.debug(Console.MIN, f"Kind environment: compute resources not actually assigned to WFR {wfr.name}")
+        else:
+            Console.debug(Console.MIN, f"Preview mode: compute resources not actually assigned to WFR {wfr.name}")
+
+        Console.pretty_json({"action": "assignresources",
+                             "preview": self.config.preview,
+                             "results": assign_results})
+
+        return 0
+
+    def do_assign_resources_ORIG(self):
+        """Assign server and compute resources to the specified Workflow CR."""
+        assign_results = []
+        computes = []
+        selected_computes = {}
+        selected_rabbits = {}
+
+        Console.debug(Console.WORDY, "Retrieving inventory")
+        rabbits, source = self.do_get_inventory(only_ready_nodes=True)
+        kind_env_detected = False
+
+        if len(rabbits) < 1:
+            msg = f"Inventory from {source} does not contain any nnf nodes that can be assigned"
+            raise DWSError(msg, DWSError.DWS_NO_INVENTORY)
+
+        # Build a master dict of computes that could be assigned
+        Console.debug(Console.WORDY, "Building master list of nnf and compute nodes")
         for node_name, node in rabbits.items():
             if not kind_env_detected and node.name.strip().lower().startswith("kind"):
                 kind_env_detected = True
@@ -768,20 +1127,35 @@ class DWSUtility:
                                      f" {self.config.wfr_name}")
         wfr = self.dws.wfr_get(self.config.wfr_name)
 
+        Console.debug(Console.WORDY, "Processing directive breakdowns")
         breakdowns = self.dws.wfr_get_directiveBreakdowns(wfr)
         if len(breakdowns) == 0:
             msg = f"Workflow Resource named '{wfr.name}' has no directive breakdowns"
             raise DWSError(msg, DWSError.DWS_INCOMPLETE)
 
+        breakdown_allocations = []
+
+        one_type_per_server = {}
+
         for breakdown in breakdowns:
             Console.debug(Console.WORDY, Console.FULL_BAR)
-            Console.debug(Console.WORDY, f"Breakdown {breakdown.name}")
+            Console.debug(Console.WORDY, f"Processing breakdown {breakdown.name}")
             allocations = breakdown.allocationSet
+            alloc_idx = 0
             for alloc in allocations:
+                # *************************************************************
+                # * Process allocations spread across rabbits
+                # *************************************************************
                 if alloc.is_across_servers:
                     pass
+                # *************************************************************
+                # * Process allocations restricted to 1 per server
+                # *************************************************************
                 elif alloc.is_single_server:
                     pass
+                # *************************************************************
+                # * Process allocations per compute
+                # *************************************************************
                 elif alloc.is_per_compute:
 
                     # Check to make sure that we have enough remaining capacity for these allocations
@@ -813,6 +1187,7 @@ class DWSUtility:
                             selected_rabbits[r.name] = r
                             r.remaining_storage -= alloc.minimumCapacity
                             r.allocationCount += 1
+                            Console.debug(Console.WORDY, f"Selecting compute node '{c['computeName']}' on '{rabbit_name}', {len(selected_computes)} of {self.config.nodes} selected")
                         else:
                             Console.debug(Console.MIN,
                                           f"...rabbit {rabbit_name} has"
@@ -846,23 +1221,34 @@ class DWSUtility:
                                   " nnfnode(s) to be assigned: "
                                   f"{[k[0] for k in selected_rabbits.items()]}")
 
+                    svr_results = {'name': breakdown.name, "alloc": alloc_idx, "result": "succeeded", "servers": [k[0] for k in selected_rabbits.items()]}
                     if not self.config.preview:
-                        if not kind_env_detected:
-                            self.dws.wfr_update_computes(wfr, node_list)
-                        self.dws.wfr_update_servers(breakdown,
-                                                    alloc.minimumCapacity,
-                                                    selected_rabbits)
+                        try:
+                            self.dws.wfr_update_servers(breakdown,
+                                                        alloc.minimumCapacity,
+                                                        selected_rabbits)
+                        except DWSError as ex:
+                            svr_results = {'name': breakdown.name, "alloc": alloc_idx, "result": "failed", "message": ex.message}
+
                     else:
                         Console.debug(Console.MIN, f"Preview mode: resources not actually assigned to WFR {wfr.name}")
 
-                    assign_results.append({"name": wfr.name,
-                                           "result": "succeeded",
-                                           "computes": node_list,
-                                           "servers": [k[0] for k in selected_rabbits.items()]})
-            Console.pretty_json({"action": "assignresources",
-                                 "preview": self.config.preview,
-                                 "results": assign_results})
-            return 0
+                    breakdown_allocations.append(svr_results)
+
+                alloc_idx += 1
+
+        assign_results.append({"name": wfr.name,
+                               "result": "succeeded",
+                               "computes": node_list,
+                               "breakdowns": breakdown_allocations})
+        if not self.config.preview:
+            if not kind_env_detected:
+                self.dws.wfr_update_computes(wfr, node_list)
+
+        Console.pretty_json({"action": "assignresources",
+                             "preview": self.config.preview,
+                             "results": assign_results})
+        return 0
 
     def do_show_inventory(self):
         """Dump the loaded inventory to the console."""

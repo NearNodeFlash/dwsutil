@@ -1,6 +1,5 @@
 .DS_Store
 __pycache__
-.vscode
 *.pyc
 *.save
 vm-kube.cfg
@@ -8,4 +7,3 @@ venv/
 tests/results.txt
 .coverage
 htmlcov/
-localdata/

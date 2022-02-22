@@ -1,0 +1,192 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "dwsutil(vm) - Create WFR with startime in name",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-c", "localdata/dwsutil-vm.cfg", "-k", "/Users/billj/work/dev/rabbit/dwsutil/vm-kube.cfg", "-n", "my-wfr-dw-$(starttime)", "--context", "WFR", "--operation", "CREATE", "--dw", "#DW jobdw type=xfs capacity=5GB name=vm-test-1-raw", "--dw", "#DW jobdw type=xfs capacity=5GB name=vm-test-2-raw", "--opcount", "5", "--munge"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: dwsutil(local) - assign resources - lustre",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-c", "tst.cfg", "-k", "/Users/billj/.kube/config", "-n", "tst-wfr4", "--context", "WFR", "--operation", "assignresources", "--nodes", "3", "--nodelist", "c1,c2,c3,c4,c5" ],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil(local) - assign resources - xfs - 20 nodes",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-c", "dwsutil.cfg", "-i", "./data/compute_inventory.yaml", "-n", "wfr-test", "--operation", "assignresources", "--nodes", "20" ],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil(vm) - assign resources - xfs - 1 nodes",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-c", "dwsutil-vm.cfg", "-n", "wfr-test2", "--operation", "assignresources", "--nodes", "1" ],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil(dp1b) - assign resources",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-k", "localdata/kube-dp1b.cfg", "-n", "bj20220208-01", "--operation", "assignresources"],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil(local) - progress - xfs",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-i", "./data/compute_inventory.yaml", "-n", "my-wfr", "--operation", "progress"],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil(vm) - progress",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-c", "dwsutil-vm.cfg", "--operation", "progress"],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil(vm) - delete",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-c", "dwsutil-vm.cfg", "-n", "wfr-test-0", "--operation", "delete"],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil(default) - showconfig",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["--showconfig", "--exc", "    c1,   c2    ", "--exr", "    r1,   r2   "],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil(dp1b) - showconfig dp1b config",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-c", "dwsutil-dp1b.cfg", "--showconfig"],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil(dp1b) - create dp1b config",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-c", "dwsutil-dp1b.cfg", "--operation", "create", "-n", "wfr-debug"],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil(dp1b) - showconfig default config",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["--showconfig"],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil sim(vm-v3) - show inventory from cluster",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["--context", "inventory", "--operation", "show", "-k", "localdata/kube-vm-v3.cfg"],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil sim(dp1b) - show inventory from cluster",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["--context", "inventory", "--operation", "show", "-c", "dwsutil-dp1b.cfg"],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: dwsutil(dp1b) - show inventory from file",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["--context", "inventory", "--operation", "show", "-c", "dwsutil-dp1b.cfg", "-i", "./data/dp1b_compute_inventory.yaml"],
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: Run dwsutil CREATE",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-n", "my-wfr-dw", "--operation", "CREATE", "--dw", "#DW jobdw type=xfs capacity=5GB name=vm-test-1-raw", "--dw", "#DW jobdw type=xfs capacity=5GB name=vm-test-2-raw"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: dwsutil(vm) - investigate system",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["--context", "system", "--operation", "investigate", "-k", "./localdata/kube-dp1b.cfg"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: dwsutil(dp1b) - investigate wfr",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["--showconfig", "--operation", "investigate", "-n", "bj-20220208-01", "-k", "./localdata/kube-dp1b.cfg"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: dwsutil(vm) - investigate wfr",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["--operation", "investigate", "-n", "wfr-20220214122316", "-c", "./localdata/dwsutil-vm.cfg"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: dwsutil(dp1b) - 5 computes - assignresources dp1b-wfr-20220217131605",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["--operation", "assignresources", "-n", "dp1b-wfr-20220217131605", "-c", "./localdata/dwsutil-dp1b.cfg", "--noreuse", "--nodes", "5"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: dwsutil(dp1b) - 35 computes - assignresources dp1b-wfr-20220217131605",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["--operation", "assignresources", "-n", "dp1b-wfr-20220217131605", "-c", "./localdata/dwsutil-dp1b.cfg", "--noreuse", "--nodes", "35"],
+            "console": "integratedTerminal"
+        }
+   ],
+    "inputs": [
+        {
+            "id": "provideArgs",
+            "description": "Provide arguments",
+            "type": "promptString",
+            "default": "-c tst.cfg -k vm-kube.cfg"
+        }
+    ]
+}

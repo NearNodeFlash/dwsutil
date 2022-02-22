@@ -313,7 +313,8 @@ class TestCRDs(unittest.TestCase, TestUtil):
     def test_storage_allocs_remaining(self):
         storage = Storage(TestUtil.STORAGE_JSON)
         allocsize = 1000000000
-        remaining = math.floor( storage.remaining_storage / allocsize )
+        remaining = math.floor(storage.remaining_storage / allocsize)
+
         allocsremaining = storage.allocs_remaining(allocsize)
         self.assertEqual(allocsremaining, remaining)
 
