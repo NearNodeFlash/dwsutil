@@ -331,9 +331,10 @@ class DWSUtility:
             assign_expected = False
 
         if wfr["spec"]["desiredState"] == wfr["status"]["state"]:
-            facts.append(f"WORKFLOW: desiredState '{wfr['spec']['desiredState']}' has been achieved")
-            if not wfr["status"]["ready"]:
-                facts.append("WARNING: Workflow ready field IS FALSE")
+            if wfr["status"]["ready"]:
+                facts.append(f"WORKFLOW: desiredState '{wfr['spec']['desiredState']}' has been achieved")
+            else:
+                facts.append(f"WARNING: state '{wfr['spec']['desiredState']}' matches desiredState HOWEVER ready field is FALSE")
         else:
             facts.append(f"WORKFLOW: desiredState '{wfr['spec']['desiredState']}' has NOT been achieved")
             if wfr["status"]["ready"]:
@@ -558,10 +559,16 @@ class DWSUtility:
                 desiredState = self.dws.wfr_get_next_state(wfr.state)
                 if desiredState is None:
                     if wfr.state == "teardown" and not fail_from_teardown:
+                        if wfr.is_ready:
+                            msg = f"Workflow '{wfr_name}'"\
+                                  " has achieved 'teardown'"
+                        else:
+                            msg = f"Workflow '{wfr_name}'"\
+                                  " is in 'teardown'"
+
                         results.append({"name": wfr_name,
                                         "result": "succeeded",
-                                        "message": f"Workflow '{wfr_name}'"
-                                        " has achieved 'teardown'"})
+                                        "message": msg})
                     else:
                         results.append({"name": wfr_name,
                                         "result": "failed",
