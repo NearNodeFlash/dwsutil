@@ -71,7 +71,7 @@ class DWSUtility:
     def investigate_system_configuration(self, facts):
         """Report current configuration and cluster info."""
         Console.output("\nConfiguration", output_timestamp=False)
-        Console.output("-"*20, output_timestamp=False)
+        Console.output("-" * 20, output_timestamp=False)
         tsp = Console.timestamp
 
         Console.timestamp = False
@@ -139,7 +139,7 @@ class DWSUtility:
                     other_nodes.append(node_str)
 
             Console.output("\nHPE Manager Nodes", output_timestamp=False)
-            Console.output("-"*20, output_timestamp=False)
+            Console.output("-" * 20, output_timestamp=False)
             if len(manager_nodes) == 0:
                 Console.output("None", output_timestamp=False)
                 facts.append("WARNING: No HPE manager nodes are present")
@@ -148,7 +148,7 @@ class DWSUtility:
                     Console.output(node, output_timestamp=False)
 
             Console.output("\nHPE Rabbit Nodes", output_timestamp=False)
-            Console.output("-"*20, output_timestamp=False)
+            Console.output("-" * 20, output_timestamp=False)
             if len(rabbit_nodes) == 0:
                 Console.output("None", output_timestamp=False)
                 facts.append("WARNING: No HPE rabbit nodes are present")
@@ -157,7 +157,7 @@ class DWSUtility:
                     Console.output(node, output_timestamp=False)
 
             Console.output("\nOther Nodes", output_timestamp=False)
-            Console.output("-"*20, output_timestamp=False)
+            Console.output("-" * 20, output_timestamp=False)
             if len(other_nodes) == 0:
                 Console.output("None", output_timestamp=False)
                 # Not sure if this should be a warning.
@@ -188,7 +188,7 @@ class DWSUtility:
     def investigate_pods(self, facts):
         """Investigate PODs in the system and report any issues."""
         Console.output("\nPods", output_timestamp=False)
-        Console.output("-"*20, output_timestamp=False)
+        Console.output("-" * 20, output_timestamp=False)
         dws_operator_count = 0
         nnf_controller_manager_count = 0
         nnf_node_manager_count = 0
@@ -237,7 +237,7 @@ class DWSUtility:
     def investigate_crds(self, facts):
         """Investigate CRDs in the system and report missing ones."""
         Console.output("\nCustom Resource Definitions", output_timestamp=False)
-        Console.output("-"*50, output_timestamp=False)
+        Console.output("-" * 50, output_timestamp=False)
         crd_count = 0
         # NOTE: Any added/deleted CRDs need to be reflect in this list
         unexpected_crd_list = []
@@ -266,7 +266,7 @@ class DWSUtility:
                     Console.output(crd.metadata.name, output_timestamp=False)
                 else:
                     crd_str = f"Unexpected CRD: {crd.metadata.name}"
-                    Console.output(f"* {crd_str}", output_timestamp=False)
+                    Console.output(f" *  {crd_str}", output_timestamp=False)
                     unexpected_crd_list.append(f"WARNING: {crd_str}")
 
         for crd in hpe_crds:
@@ -290,7 +290,7 @@ class DWSUtility:
 
         # Dump summary of investigation
         Console.output("\nSummary", output_timestamp=False)
-        Console.output("-"*20, output_timestamp=False)
+        Console.output("-" * 20, output_timestamp=False)
         if len(facts) == 0:
             Console.output("Nothing to report", output_timestamp=False)
         else:
@@ -448,12 +448,12 @@ class DWSUtility:
 
         # Dump summary of investigation
         Console.output("\nObjects evaluated", output_timestamp=False)
-        Console.output("-"*20, output_timestamp=False)
+        Console.output("-" * 20, output_timestamp=False)
         for obj in objects:
             Console.output(obj, output_timestamp=False)
 
         Console.output("\nMissing objects", output_timestamp=False)
-        Console.output("-"*20, output_timestamp=False)
+        Console.output("-" * 20, output_timestamp=False)
         if len(expected_but_missing) < 1:
             Console.output("No missing objects", output_timestamp=False)
         else:
@@ -461,7 +461,7 @@ class DWSUtility:
                 Console.output(obj, output_timestamp=False)
 
         Console.output("\nSummary", output_timestamp=False)
-        Console.output("-"*20, output_timestamp=False)
+        Console.output("-" * 20, output_timestamp=False)
         if len(facts) == 0:
             Console.output("Nothing to report", output_timestamp=False)
         else:
@@ -654,7 +654,7 @@ class DWSUtility:
             if self.config.operation_count == 1:
                 wfr_name = self.config.wfr_name
             else:
-                wfr_name = self.config.wfr_name+"-"+str(iteration)
+                wfr_name = self.config.wfr_name + "-" + str(iteration)
             try:
                 if not self.config.preview:
                     self.dws.wfr_create(wfr_name,
@@ -738,7 +738,7 @@ class DWSUtility:
         """Assign server and compute resources to the specified Workflow CR."""
         computes = []  # Master list of compute nodes
         selected_computes = {}  # Computes are selected for the workflow
-        server_updates = [] # 1 for each Directive Breakdown
+        server_updates = []     # 1 for each Directive Breakdown
 
         Console.debug(Console.WORDY, "Retrieving inventory")
         rabbits, source = self.do_get_inventory(only_ready_nodes=True)
@@ -762,7 +762,7 @@ class DWSUtility:
             for c in node.computes:
                 if c["status"] != "Ready":
                     Console.debug(Console.MIN,
-                                  f"...compute {c['computeName']} is"
+                                  f"...compute {c['name']} is"
                                   " not ready and will be skipped")
                     continue
 
@@ -830,7 +830,7 @@ class DWSUtility:
                 Console.debug(Console.WORDY, "No 'AllocatePerCompute' to process")
             else:
                 Console.debug(Console.WORDY, "Processing 'AllocatePerCompute'")
-                Console.debug(Console.WORDY, "-"*40)
+                Console.debug(Console.WORDY, "-" * 40)
                 selected_rabbits = {}  # Rabbits are selected per allocation
                 for alloc in per_compute:
                     for c in computes:
@@ -861,12 +861,12 @@ class DWSUtility:
                             Console.debug(Console.WORDY, f"   rabbit remaining storage: {r.remaining_storage}")
                         else:
                             Console.debug(Console.MIN, f"   rabbit {rabbit_name} has"
-                                        " insufficient storage to be considered")
+                                                       " insufficient storage to be considered")
 
                         # If we selected the specified number of nodes....
                         if len(selected_computes) == self.config.nodes:
                             Console.debug(Console.MIN, f"{self.config.nodes}"
-                                            " computes successfully selected")
+                                                       " computes successfully selected")
                             break
                     # If we went through all of our rabbits and still didn't find
                     # enough compute nodes, the assign cannot be completed
@@ -876,19 +876,18 @@ class DWSUtility:
                             f" {self.config.nodes}"
                         raise DWSError(msg, DWSError.DWS_INSUFFICIENT_RESOURCES)
 
-
                     if kind_env_detected:
                         compute_nodes = [f"{selected_computes[c]['computeName']} "
-                                    "(not set in KIND env)"
-                                    for c in selected_computes]
+                                         "(not set in KIND env)"
+                                         for c in selected_computes]
                     else:
                         compute_nodes = [selected_computes[c]['computeName']
-                                    for c in selected_computes]
+                                         for c in selected_computes]
 
                     Console.debug(Console.MAX, f"{self.config.nodes}"
-                                f" compute(s) to be assigned: {compute_nodes}")
+                                               f" compute(s) to be assigned: {compute_nodes}")
                     Console.debug(Console.MIN, " nnfnode(s) to be assigned: "
-                                f"{[k[0] for k in selected_rabbits.items()]}")
+                                               f"{[k[0] for k in selected_rabbits.items()]}")
 
                 assignment = {"label": alloc.label, "allocationSize": alloc.minimumCapacity, "storage": [selected_rabbits[x] for x in selected_rabbits]}
                 breakdown_allocations["allocationSet"].append(assignment)
@@ -903,7 +902,7 @@ class DWSUtility:
                 Console.debug(Console.WORDY, "No 'AllocateSingleServer' to process")
             else:
                 Console.debug(Console.WORDY, "Processing 'AllocateSingleServer'")
-                Console.debug(Console.WORDY, "-"*40)
+                Console.debug(Console.WORDY, "-" * 40)
                 idx = 0
                 all_selected_rabbits = {}
                 for alloc in single_server:
@@ -924,14 +923,14 @@ class DWSUtility:
                         rabbit_eligible = True
                         idx += 1
 
-                        # Determine if this rabbit is eligible from a 
+                        # Determine if this rabbit is eligible from a
                         # colocation constraint perspective
                         if alloc.has_colocation_constraints and node_name in label_constrained_nodes[alloc.label]:
                             rabbit_eligible = False
                             Console.debug(Console.MIN, f"     Rabbit is not eligible as it already has an {alloc.label}")
                             continue
 
-                        # In the interest of distributing components across 
+                        # In the interest of distributing components across
                         # rabbits, see if the user wants to reuse or not reuse
                         # rabbits for Single Server allocations.  Controlled
                         # by the --noreuse flag
@@ -970,10 +969,10 @@ class DWSUtility:
                                                 break
                             else:
                                 Console.debug(Console.MIN, f"   rabbit {node_name} has"
-                                            " insufficient storage to be considered")
+                                                           " insufficient storage to be considered")
 
                         Console.debug(Console.MIN, "   nnfnode(s) to be assigned: "
-                                    f"{[k[0] for k in selected_rabbits.items()]}")
+                                                   f"{[k[0] for k in selected_rabbits.items()]}")
 
                         assignment = {"label": alloc.label, "allocationSize": alloc.minimumCapacity, "storage": [selected_rabbits[x] for x in selected_rabbits]}
                         breakdown_allocations["allocationSet"].append(assignment)
@@ -981,7 +980,7 @@ class DWSUtility:
                             Console.debug(Console.WORDY, f"   allocation {idx} details:")
                             Console.pretty_json(assignment)
                         break
-                        Console.debug(Console.WORDY, "-"*40)
+                        Console.debug(Console.WORDY, "-" * 40)
 
                     if len(selected_rabbits) == 0:
                         msg = f"Unable to locate a rabbit to serve '{alloc.label}'"
@@ -994,7 +993,7 @@ class DWSUtility:
                 Console.debug(Console.WORDY, "No 'AllocateAcrossServers' to process")
             else:
                 Console.debug(Console.WORDY, "Processing 'AllocateAcrossServers'")
-                Console.debug(Console.WORDY, "-"*40)
+                Console.debug(Console.WORDY, "-" * 40)
                 for alloc in across_servers:
                     selected_rabbits = {}  # Rabbits are selected per allocation
 
@@ -1044,8 +1043,7 @@ class DWSUtility:
                     if len(compute_nodes) >= self.config.nodes:
                         break
                     for c in r.computes:
-                        if c["status"] == "Ready" and\
-                            c['name'] not in compute_nodes:
+                        if c["status"] == "Ready" and c['name'] not in compute_nodes:
                             Console.debug(Console.WORDY, f"   Adding compute {c['name']} for assignment")
                             compute_nodes.append(c['name'])
                             if len(compute_nodes) >= self.config.nodes:
@@ -1059,17 +1057,17 @@ class DWSUtility:
             alloc_idx = 0
             final_allocations = []
             for ba in all_breakdown_allocations:
-                    svr_results = {'name': breakdown.name, "alloc": alloc_idx, "result": "succeeded", "allocationSet": ba}
-                    if not self.config.preview:
-                        try:
-                            self.dws.wfr_update_servers(ba)
-                        except DWSError as ex:
-                            svr_results = {'name': breakdown.name, "alloc": alloc_idx, "result": "failed", "message": ex.message}
-                    else:
-                        Console.debug(Console.MIN, f"Preview mode: nnf resources not actually assigned to WFR {wfr.name}")
-                    alloc_idx += 1
+                svr_results = {'name': breakdown.name, "alloc": alloc_idx, "result": "succeeded", "allocationSet": ba}
+                if not self.config.preview:
+                    try:
+                        self.dws.wfr_update_servers(ba)
+                    except DWSError as ex:
+                        svr_results = {'name': breakdown.name, "alloc": alloc_idx, "result": "failed", "message": ex.message}
+                else:
+                    Console.debug(Console.MIN, f"Preview mode: nnf resources not actually assigned to WFR {wfr.name}")
+                alloc_idx += 1
 
-                    final_allocations.append(svr_results)
+                final_allocations.append(svr_results)
 
         assign_results = {'name': wfr.name,
                           'result': 'succeeded',
@@ -1166,7 +1164,7 @@ class DWSUtility:
                 elif alloc.is_per_compute:
 
                     # Check to make sure that we have enough remaining capacity for these allocations
-                    allocs_available = reduce(lambda x, y: x+y,
+                    allocs_available = reduce(lambda x, y: x + y,
                                               [r.allocs_remaining(alloc.minimumCapacity) for k, r in rabbits.items()]
                                               )
                     if allocs_available < self.config.nodes:
@@ -1261,8 +1259,8 @@ class DWSUtility:
         """Dump the loaded inventory to the console."""
         rabbits, source = self.do_get_inventory()
         json = {
-                "source": source,
-                "nnfnodes": []
+            "source": source,
+            "nnfnodes": []
         }
         for nnf_name, nnf_obj in rabbits.items():
             nnf_json = nnf_obj.to_json()
