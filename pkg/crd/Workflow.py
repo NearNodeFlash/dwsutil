@@ -236,7 +236,7 @@ class Workflow:
 
     def dump_summary(self, raw_output=False):
         """Dump object summary to console."""
-        Console.output("-"*40)
+        Console.output("-" * 40)
         Console.output(f"WFR: {self.name}")
         if raw_output:  # pragma: no cover
             Console.output(self.raw_wfr)

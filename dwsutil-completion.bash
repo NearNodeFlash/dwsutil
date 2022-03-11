@@ -54,7 +54,8 @@ _comp_dwsutil()
 		condition="${context::2}-${arg::1}"
 		case "${condition}" in
 		"wf-") 
-			COMPREPLY+=("assignresources")  
+			COMPREPLY+=("assigncomputes")  
+			COMPREPLY+=("assignservers")
 			COMPREPLY+=("create")  
 			COMPREPLY+=("delete")  
 			COMPREPLY+=("get")  
@@ -64,7 +65,12 @@ _comp_dwsutil()
 			COMPREPLY+=("progressteardown")  
 			;;
 		"wf-a") 
-			COMPREPLY+=("assignresources")  
+            if [[ ${#argfull} -le 6 ]] || [[ "${argfull}" =~ .*"assignc".* ]]; then
+			    COMPREPLY+=("assigncomputes")  
+            fi
+            if [[ ${#argfull} -le 6 ]] || [[ "${argfull}" =~ .*"assigns".* ]]; then
+	    		COMPREPLY+=("assignservers")
+            fi
 			;;
 		"wf-c") 
 			COMPREPLY+=("create")  
@@ -119,7 +125,10 @@ _comp_dwsutil()
 			COMPREPLY+=("--showconfig")  
 			;;
 		"--p"|"--pr") 
-			COMPREPLY+=("--operation")  
+			COMPREPLY+=("--pretty")  
+			;;
+		"--a"|"--al"|"--all") 
+			COMPREPLY+=("--alloc")  
 			;;
 		"--ope") 
 			COMPREPLY+=("--operation")  
@@ -155,6 +164,7 @@ _comp_dwsutil()
 			COMPREPLY+=("--noreuse")  
 			;;
 		"--")
+			COMPREPLY+=("--alloc")  
 			COMPREPLY+=("--config")  
 			COMPREPLY+=("--exc")  
 			COMPREPLY+=("--exr")  

@@ -77,9 +77,9 @@ class Console:
     WORDY = 2
     TRACE = 3
     MAX = 4
-    QTR_BAR = "-"*20
-    HALF_BAR = "-"*40
-    FULL_BAR = "-"*60
+    QTR_BAR = "-" * 20
+    HALF_BAR = "-" * 40
+    FULL_BAR = "-" * 60
 
     def caller_name(skip=2):
         """Get a name of a caller in the format module.class.method.

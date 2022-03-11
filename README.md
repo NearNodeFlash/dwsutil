@@ -236,6 +236,47 @@ $ ./dwsutil.py --operation get -n wfr-demo
 }
 ```
 
+**Assign server resources to a Workflow resource**
+*Note: In the case of an XFS/GFS2 filesystem, the number of nodes will dicate the number of servers(rabbit) that get assigned.  If a server contains 16 compute nodes and the request is for 17 nodes, it will take 2 servers to fulfill that request.  'assignservers' should occur PRIOR to 'assigncomputes'.*
+```
+$ ./dwsutil.py --operation assignservers --nodes 17
+```
+```json
+{
+    "action": "assignresources",
+    "preview": false,
+    "results": {
+        "breakdowns": [
+            {
+                "allocationSet": [
+                    {
+                        "allocationSize": 5000000000,
+                        "label": "xfs",
+                        "storage": [
+                            {
+                                "allocationCount": 16,
+                                "name": "rabbit-node-1"
+                            },
+                            {
+                                "allocationCount": 1,
+                                "name": "rabbit-node-0"
+                            }
+                        ]
+                    }
+                ],
+                "name": "dp1b-wfr-xfs-0",
+                "serverObj": [
+                    "dp1b-wfr-xfs-0",
+                    "default"
+                ]
+            }
+        ],
+        "name": "dp1b-wfr-xfs",
+        "result": "succeeded"
+    }
+}
+```
+
 **Assign resources to a Workflow resource**
 NOTE: This will use cluster inventory unless overridden with an inventory file**
 ```
@@ -257,6 +298,77 @@ $ ./dwsutil.py --operation assignresources -n wfr-demo
             ]
         }
     ]
+}
+```
+
+**Assign SPECIFIC servers to a Workflow resource**
+Resources may be specified by using the --alloc flag.  At the present time, only Lustre resources are supported.  If you use this flag, you must specify resources for all of the components (mgt,mdt,ost).  The form of the argument is:
+
+    --alloc "<dw name>;mgt=<rabbit-name>;mdt=<rabbit-name>;ost=<rabbit-name>:<optional number of allocations>"
+
+The default number of allocations is 1.  The "ost" component may have multiple rabbits assigned by providing multiple rabbit:allocation specifications separated by a comma.
+
+*Note: You cannot combine --alloc with --exr flags*
+
+The following would assign specific resources to the following #DW:
+\#DW jobdw type=lustre capacity=15GB name=fs-lustre
+
+```
+$ ./dwsutil.py -c --operation assignservers --alloc "fs-lustre;mgt=rabbit-01;mdt=rabbit-02;ost=rabbit-03:2,rabbit-04:2" --preview
+```
+```json
+{
+    "action": "assignresources",
+    "preview": true,
+    "results": {
+        "breakdowns": [
+            {
+                "allocationSet": [
+                    {
+                        "allocationSize": 1000000000000,
+                        "label": "mdt",
+                        "storage": [
+                            {
+                                "allocationCount": 1,
+                                "name": "rabbit-02"
+                            }
+                        ]
+                    },
+                    {
+                        "allocationSize": 1000000000,
+                        "label": "mgt",
+                        "storage": [
+                            {
+                                "allocationCount": 1,
+                                "name": "rabbit-01"
+                            }
+                        ]
+                    },
+                    {
+                        "allocationSize": 1250000000,
+                        "label": "ost",
+                        "storage": [
+                            {
+                                "allocationCount": 2,
+                                "name": "rabbit-03"
+                            },
+                            {
+                                "allocationCount": 2,
+                                "name": "rabbit-04"
+                            }
+                        ]
+                    }
+                ],
+                "name": "dp1b-wfr-lustre-0",
+                "serverObj": [
+                    "dp1b-wfr-lustre-0",
+                    "default"
+                ]
+            }
+        ],
+        "name": "dp1b-wfr-lustre",
+        "result": "succeeded"
+    }
 }
 ```
 

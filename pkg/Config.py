@@ -37,6 +37,7 @@ class Config:
         self.argv = argv
         self.munge = False
         self.force = False
+        self.ignore_ready = False
         self.quiet = False
         self.preview = False
         self.show_version = False
@@ -82,6 +83,10 @@ class Config:
         self.nodelist = None
         self.pretty = True
         self.reuse_rabbit = False
+        self.ost_count = 2
+        self.ost_per_rabbit = 1
+        self.alloc_recipe = {}
+        self.alloc_raw = []
 
         self.operation_count = 1
         self.singlethread = False
@@ -150,12 +155,17 @@ class Config:
         Console.outputnotsp(f"{msg}")
         Console.outputnotsp("usage: dwsutil.py <options>")
         self.output_usage_item("-?", "Display this usage")
+        self.output_usage_item("--alloc specification", "Specify the allocation format for Lustre")
+        self.output_usage_item_detail(1, "specification format: fs-name;mgt=somerabbit;mdt=somerabbit;ost=somerabbit")
+        self.output_usage_item_detail(1, "   where fs-name is the name in a given #dw")
+        self.output_usage_item_detail(1, "   Note: You must specify all components, mgt, mdt, and ost")
         self.output_usage_item("-c/--config <configfile>", "Specify simulator configuration file")
         self.output_usage_item("--dw '#DW ....'", "Add a DataWarp directive, may occur multiple times")
         self.output_usage_item("--exr rabbit1,rabbit2,...rabbitN", "Exclude the listed rabbits when assigning resources")
         self.output_usage_item("--exc compute1,compute2,...computeN", "Exclude the listed computes when assigning resources")
 #        self.output_usage_item("--force", "Force an operation that would ordinarily be prevented")
         self.output_usage_item("-i/--inventory <inventoryfile>", "Override cluster inventory for the simulator using the file provided")
+        self.output_usage_item("--ignoreready", "Ignore ready status of computes and rabbits")
         self.output_usage_item("-j/--jobid <job_id>", "Specify the job id to be used in the Workflow Resource")
         self.output_usage_item("-k/--kcfg <configfile>", "Specify kubernetes configuration file")
         self.output_usage_item("--kctx <context>", "Kubernetes context to use")
@@ -166,6 +176,8 @@ class Config:
 #        self.output_usage_item("--nodelist compute1,compute2,compute3,...computeN", "Specify the list of compute nodes to be used")
         self.output_usage_item("--notimestamp", "Remove timestamping from the output")
         self.output_usage_item("--opcount <number>", "Perform the requested operation <number> times, default=1")
+        self.output_usage_item("--ostcount <number>", "Number of OST HOSTS for Lustre, default=2")
+        self.output_usage_item("--ostperrabbit <number>", "Number of OSTs per Rabbit for Lustre, default=1")
         self.output_usage_item("--pretty", "Format JSON output")
         self.output_usage_item("-q", "Suppress non-operational output")
         self.output_usage_item("--regex", "Enable regex pattern matching for operations that allow regexes")
@@ -181,7 +193,8 @@ class Config:
         self.output_usage_item("--operation <operation>", "Provide the 'operation' to be performed.  Valid operations are:")
         self.output_usage_item_detail(1, "Note: 'context' and 'operation' ARE NOT CASE SENSITIVE")
         self.output_usage_item_detail(1, "When context = WFR")
-        self.output_usage_item_detail(3, "ASSIGNRESOURCES - Choose rabbits and computes based on the directivebreakdown")
+        self.output_usage_item_detail(3, "ASSIGNCOMPUTES - Choose computes based on the directivebreakdown")
+        self.output_usage_item_detail(3, "ASSIGNSERVERS - Choose rabbits based on the directivebreakdown")
         self.output_usage_item_detail(3, "CREATE - Create the specified WFR")
         self.output_usage_item_detail(3, "DELETE - Delete the WFR matching the specified name (regex allowed)")
         self.output_usage_item_detail(3, "GET - Get the named workflow resource")
@@ -205,19 +218,19 @@ class Config:
         Console.outputnotsp("  Show configuration information")
         Console.outputnotsp("     dwsutil.py --showconfig")
         Console.outputnotsp("     dwsutil.py -c dwsutil-mymachine.cfg --showconfig")
-        Console.outputnotsp("-"*60)
+        Console.outputnotsp("-" * 60)
         Console.outputnotsp("  Show cluster inventory")
         Console.outputnotsp("     dwsutil.py --context INVENTORY --operation SHOW")
-        Console.outputnotsp("-"*60)
+        Console.outputnotsp("-" * 60)
         Console.outputnotsp("  Create a WFR named 'my-wfr-01'")
         Console.outputnotsp("     dwsutil.py -n my-wfr-01 --operation CREATE")
-        Console.outputnotsp("-"*60)
-        Console.outputnotsp("  Assign resources to a WFR named 'my-wfr-01'")
-        Console.outputnotsp("     dwsutil.py -n my-wfr-01 --operation ASSIGNRESOURCES")
-        Console.outputnotsp("-"*60)
+        Console.outputnotsp("-" * 60)
+        Console.outputnotsp("  Assign servers(rabbits) to a WFR named 'my-wfr-01'")
+        Console.outputnotsp("     dwsutil.py -n my-wfr-01 --operation ASSIGNSERVERS")
+        Console.outputnotsp("-" * 60)
         Console.outputnotsp("  Progress a WFR named 'my-wfr-01'")
         Console.outputnotsp("     dwsutil.py -n my-wfr-01 --operation PROGRESS")
-        Console.outputnotsp("-"*60)
+        Console.outputnotsp("-" * 60)
         Console.outputnotsp("  Delete a WFR named 'my-wfr-01'")
         Console.outputnotsp("     dwsutil.py -n my-wfr-01 --operation DELETE")
         if die:
@@ -239,7 +252,7 @@ class Config:
             if not os.path.exists(self.k8s_config):
                 self.usage(f"Kubernetes configuration file '{self.k8s_config}' does not exist")
 
-        if self.context == "WFR" and self.operation in ["CREATE", "GET", "ASSIGNRESOURCES", "DELETE", "PROGRESS", "PROGRESSTEARDOWN", "INVESTIGATE"]:
+        if self.context == "WFR" and self.operation in ["CREATE", "GET", "ASSIGNCOMPUTES", "ASSIGNSERVERS", "DELETE", "PROGRESS", "PROGRESSTEARDOWN", "INVESTIGATE"]:
             if self.wfr_name is None or self.wfr_name.strip() == '':
                 self.usage(f"Workflow name is required for operation {self.operation}")
 
@@ -251,6 +264,9 @@ class Config:
         if self.inventory_file is not None:
             if not os.path.exists(self.inventory_file):
                 self.usage(f"Inventory '{self.inventory_file}' does not exist")
+
+        if len(self.alloc_raw) > 0 and len(self.exclude_rabbits) > 0:
+            self.usage("--alloc flag/config cannot be used with --exr flag/config")
 
         # Strip spaces off of exclude list elements
         self.exclude_rabbits = [r.strip().lower() for r in self.exclude_rabbits]
@@ -314,6 +330,12 @@ class Config:
             for dw in self.dwdirectives:
                 self.output_config_item("dw directive", dw)
 
+        if len(self.alloc_raw) == 0:
+            self.output_config_item("alloc", "None")
+        else:
+            for alloc in self.alloc_raw:
+                self.output_config_item("alloc", alloc)
+
 #        self.output_config_item("SingleThreaded", self.singlethread)
         self.output_config_item("ShowConfig", self.showconfigonly)
         self.output_config_item("Munge WFR names", self.munge)
@@ -336,6 +358,42 @@ class Config:
         if index >= len(self.argv):
             return None, 0
         return self.argv[index], index+1
+
+    def process_alloc(self, alloc_str):
+        """Process the the argument to the --alloc flag
+
+        Parameters:
+        alloc_str : The argument following --alloc
+
+        Returns:
+        Nothing
+        """
+        if alloc_str is None:
+            self.usage("An alloc recipe must be specified with --allow   e.g. -alloc \"fs-name;mgt=somerabbit;mdt=somerabbit;ost=somerabbit\"")
+
+        self.alloc_raw.append(alloc_str)
+        alloc = alloc_str.split(";")
+        # print(f"Alloc name: {alloc[0]}")
+        # print(f"Alloc split: {alloc[1:]}")
+        alloc_obj = {"name": alloc[0], "allocs": {}}
+        for obj in alloc[1:]:
+            # print(f"...processing {obj}")
+            obj_parts = obj.split("=")
+            alloc_part = {"label": obj_parts[0], "servers": []}
+            for server_obj in obj_parts[1].split(","):
+                server_obj_parts = server_obj.split(":")
+                allocations = 1
+                if len(server_obj_parts) > 1:
+                    allocations = int(server_obj_parts[1])
+                else:
+                    allocations = 1
+                server = {"name": server_obj_parts[0], "allocations": allocations}
+
+                alloc_part["servers"].append(server)
+            alloc_obj['allocs'][obj_parts[0]] = alloc_part
+
+        self.alloc_recipe[alloc[0]] = alloc_obj
+        # Console.pretty_json(self.alloc_recipe)
 
     def process_commandline(self, init_flags_only=True):
         """Process the command line.
@@ -360,10 +418,6 @@ class Config:
             if arg == "-?":
                 self.usage("", retval=0)
 
-            if arg in ["-q"]:
-                self.quiet = True
-                continue
-
             if arg in ["-c", "--config"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
@@ -371,6 +425,10 @@ class Config:
                 if init_flags_only:
                     self.config_file = arg
                     self.config_file_source = "CLI"
+                continue
+
+            if arg in ["-q"]:
+                self.quiet = True
                 continue
 
             if arg == "-v":
@@ -387,33 +445,40 @@ class Config:
             if init_flags_only:
                 continue
 
-            if arg in ["--notimestamp"]:
-                Console.timestamp = False
+            if arg in ["--alloc"]:
+                arg, aidx = self.get_arg(aidx)
+                if arg is None:
+                    self.usage("An alloc recipe must be specified with --allow   e.g. -alloc \"fs-name;mgt=somerabbit;mdt=somerabbit;ost=somerabbit\"")
+
+                self.process_alloc(arg)
                 continue
 
-            if arg in ["--pretty"]:
-                self.pretty = True
-                Console.pretty = True
+            if arg in ["--context"]:
+                arg, aidx = self.get_arg(aidx)
+                if arg is None:
+                    self.usage("A context must be specified with --context.  Valid values are WFR.   e.g. --context WFR")
+                self.context = arg.upper()
                 continue
 
-            if arg in ["--preview"]:
-                self.preview = True
+            if arg in ["--dw"]:
+                arg, aidx = self.get_arg(aidx)
+                if arg is None:
+                    self.usage("A datawarp directive must be specified with -n   e.g. -dw \"#DW ...some directive\"")
+                self.dwdirectives.append(self.replace_vars(arg))
                 continue
 
-            if arg in ["--noreuse"]:
-                self.reuse_rabbit = False
+            if arg in ["--exc"]:
+                arg, aidx = self.get_arg(aidx)
+                if arg is None:
+                    self.usage("A comma delimited list of compute nodes to exclude must be specified with --exc   e.g. --exc c1,c2")
+                self.exclude_computes += arg.split(",")
                 continue
 
-#            if arg in ["--singlethread"]:
-#                self.singlethread = True
-#                continue
-
-            if arg in ["--regex"]:
-                self.regexEnabled = True
-                continue
-
-            if arg in ["--munge"]:
-                self.munge = True
+            if arg in ["--exr"]:
+                arg, aidx = self.get_arg(aidx)
+                if arg is None:
+                    self.usage("A comma delimited list of rabbit nodes to exclude must be specified with --exr   e.g. --exrc r1,r2")
+                self.exclude_rabbits += arg.split(",")
                 continue
 
             if arg in ["--force"]:
@@ -426,6 +491,19 @@ class Config:
                     self.usage("An inventory file must be specified with the -i or --inventory argument   e.g. -y my-inv.yaml")
                 self.inventory_file = arg
                 self.inventory_file_source = "CLI"
+                continue
+
+            if arg in ["--ignoreready"]:
+                self.ignore_ready = True
+                continue
+
+            if arg in ["-j", "--jobid"]:
+                arg, aidx = self.get_arg(aidx)
+                if arg is None:
+                    self.usage("A Job id name must be specified with -n   e.g. -j 5432")
+
+                print(arg)
+                self.job_id = int(self.replace_vars(arg))
                 continue
 
             if arg in ["-k", "--kcfg"]:
@@ -443,7 +521,10 @@ class Config:
                     self.usage("A kubernetes context must be specified with the -kctx   e.g. -kctx dp1b")
                 self.k8s_active_context = arg
                 self.k8s_active_context_source = "CLI"
+                continue
 
+            if arg in ["--munge"]:
+                self.munge = True
                 continue
 
             if arg in ["-n", "--name"]:
@@ -453,41 +534,19 @@ class Config:
                 self.wfr_name = arg
                 continue
 
-#            if arg in ["--host"]:
-#                arg, aidx = self.get_arg(aidx)
-#                if arg is None:
-#                    self.usage("A host name or IP must be specified with --host   e.g. --host localhost")
-#                self.dwshost = arg
-#                continue
-
-#            if arg in ["--port"]:
-#                arg, aidx = self.get_arg(aidx)
-#                if arg is None:
-#                    self.usage("A TCP port must be specified with --port   e.g. --port 8080")
-#                self.dwsport = arg
-#                continue
-
-            if arg in ["--dw"]:
+            if arg in ["--nodes"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
-                    self.usage("A datawarp directive must be specified with -n   e.g. -dw \"#DW ...some directive\"")
-                self.dwdirectives.append(self.replace_vars(arg))
+                    self.usage("A <number> of compute nodes must be specified with --nodes   e.g. --nodes 3")
+                self.nodes = int(arg)
                 continue
 
-            if arg in ["-j", "--jobid"]:
-                arg, aidx = self.get_arg(aidx)
-                if arg is None:
-                    self.usage("A Job id name must be specified with -n   e.g. -j 5432")
-
-                print(arg)
-                self.job_id = int(self.replace_vars(arg))
+            if arg in ["--noreuse"]:
+                self.reuse_rabbit = False
                 continue
 
-            if arg in ["-w", "--wlmid"]:
-                arg, aidx = self.get_arg(aidx)
-                if arg is None:
-                    self.usage("A WLM id name must be specified with -n   e.g. --wlmid flux01")
-                self.wlm_id = arg
+            if arg in ["--notimestamp"]:
+                Console.timestamp = False
                 continue
 
             if arg in ["--opcount"]:
@@ -497,32 +556,42 @@ class Config:
                 self.operation_count = int(arg)
                 continue
 
-            if arg in ["--nodes"]:
+            if arg in ["--operation"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
-                    self.usage("A <number> of compute nodes must be specified with --nodes   e.g. --nodes 3")
-                self.nodes = int(arg)
+                    self.usage("An operation must be specified with --operation.   e.g. --operation CREATE")
+                self.operation = arg.upper()
                 continue
 
-#            if arg in ["--nodelist"]:
-#                arg, aidx = self.get_arg(aidx)
-#                if arg is None:
-#                    self.usage("A comma delimited list of compute nodes must be specified with --nodelist   e.g. --nodelist c1,c2")
-#                self.nodelist = arg.split(",")
-#                continue
-
-            if arg in ["--exc"]:
+            if arg in ["--ostcount"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
-                    self.usage("A comma delimited list of compute nodes to exclude must be specified with --exc   e.g. --exc c1,c2")
-                self.exclude_computes += arg.split(",")
+                    self.usage("A <number> of OSTs must be specified with --ostcount   e.g. --ostcount 5")
+                self.ost_count = int(arg)
                 continue
 
-            if arg in ["--exr"]:
+            if arg in ["--ostperrabbit"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
-                    self.usage("A comma delimited list of rabbit nodes to exclude must be specified with --exr   e.g. --exrc r1,r2")
-                self.exclude_rabbits += arg.split(",")
+                    self.usage("A <number> of OSTs per Rabbit must be specified with --ostperrabbit   e.g. --ostperrabbit 2")
+                self.ost_per_rabbit = int(arg)
+                continue
+
+            if arg in ["--pretty"]:
+                self.pretty = True
+                Console.pretty = True
+                continue
+
+            if arg in ["--preview"]:
+                self.preview = True
+                continue
+
+            if arg in ["--regex"]:
+                self.regexEnabled = True
+                continue
+
+            if arg in ["--showconfig"]:
+                self.showconfigonly = True
                 continue
 
             if arg in ["-u", "--userid"]:
@@ -532,22 +601,11 @@ class Config:
                 self.user_id = int(self.replace_vars(arg))
                 continue
 
-            if arg in ["--showconfig"]:
-                self.showconfigonly = True
-                continue
-
-            if arg in ["--context"]:
+            if arg in ["-w", "--wlmid"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
-                    self.usage("A context must be specified with --context.  Valid values are WFR.   e.g. --context WFR")
-                self.context = arg.upper()
-                continue
-
-            if arg in ["--operation"]:
-                arg, aidx = self.get_arg(aidx)
-                if arg is None:
-                    self.usage("An operation must be specified with --operation.   e.g. --operation CREATE")
-                self.operation = arg.upper()
+                    self.usage("A WLM id name must be specified with -n   e.g. --wlmid flux01")
+                self.wlm_id = arg
                 continue
 
             self.usage(f"Unknown flag: {arg}")
@@ -653,63 +711,21 @@ class Config:
                 else:
                     Console.debug(Console.MIN, "No kubernetes config specified in config file")
 
+                # *******************************
+                # * Kubernetes section
+                # *******************************
                 kctx = self.get_config_entry(cfg, "k8s", "context", None)
                 if kctx is not None:
                     self.k8s_active_context = kctx
                     self.k8s_active_context_source = "Config file"
 
-                self.inventory_file = self.get_config_entry(cfg, "config", "inventory", None)
-                if self.inventory_file is not None:
-                    self.inventory_file = os.path.expandvars(self.inventory_file)
-
-                quiet = self.get_config_entry(cfg, "config", "quiet", None)
-                if quiet is not None:
-                    self.quiet = quiet
-
-                preview = self.get_config_entry(cfg, "config", "preview", None)
-                if preview is not None:
-                    self.preview = preview
-
-                pretty = self.get_config_entry(cfg, "config", "pretty", None)
-                if pretty is not None:
-                    self.pretty = pretty
-                    Console.pretty = pretty
-
-                munge = self.get_config_entry(cfg, "config", "munge", None)
-                if munge is not None:
-                    self.munge = munge
-
-                userid = self.get_config_entry(cfg, "config", "userid", None)
-                if userid is not None:
-                    if (isinstance(userid, str)):
-                        userid = int(self.replace_vars(userid))
-                    self.user_id = userid
-
-                jobid = self.get_config_entry(cfg, "config", "jobid", None)
-                if jobid is not None:
-                    if (isinstance(jobid, str)):
-                        jobid = int(self.replace_vars(jobid))
-                    self.job_id = jobid
-
-                wlmid = self.get_config_entry(cfg, "config", "wlmid", None)
-                if wlmid is not None:
-                    self.wlm_id = wlmid
-
-                wfrname = self.get_config_entry(cfg, "config", "wfrname", None)
-                if wfrname is not None:
-                    self.wfr_name = wfrname
-
-                nodes = self.get_config_entry(cfg, "config", "nodes", None)
-                if nodes is not None:
-                    self.nodes = nodes
-
-                regex = self.get_config_entry(cfg, "config", "regex", None)
-                if regex is not None:
-                    self.regexEnabled = regex
-
-                reuse = self.get_config_entry(cfg, "config", "reuse_rabbit", None)
-                if reuse is not None:
-                    self.reuse_rabbit = reuse
+                # *******************************
+                # * Config section
+                # *******************************
+                alloc_specs = self.get_config_entry(cfg, "config", "allocations", None)
+                if alloc_specs is not None:
+                    for alloc in alloc_specs:
+                        self.process_alloc(alloc['alloc'])
 
                 directives = self.get_config_entry(cfg, "config", "directives", None)
                 if directives is not None:
@@ -725,6 +741,71 @@ class Config:
                 if excludes is not None:
                     for exclude in excludes:
                         self.exclude_rabbits.append(exclude["name"])
+
+                ignore_ready = self.get_config_entry(cfg, "config", "ignoreready", None)
+                if ignore_ready is not None:
+                    self.ignore_ready = ignore_ready
+
+                self.inventory_file = self.get_config_entry(cfg, "config", "inventory", None)
+                if self.inventory_file is not None:
+                    self.inventory_file = os.path.expandvars(self.inventory_file)
+
+                jobid = self.get_config_entry(cfg, "config", "jobid", None)
+                if jobid is not None:
+                    if (isinstance(jobid, str)):
+                        jobid = int(self.replace_vars(jobid))
+                    self.job_id = jobid
+
+                munge = self.get_config_entry(cfg, "config", "munge", None)
+                if munge is not None:
+                    self.munge = munge
+
+                nodes = self.get_config_entry(cfg, "config", "nodes", None)
+                if nodes is not None:
+                    self.nodes = nodes
+
+                ostcount = self.get_config_entry(cfg, "config", "ostcount", None)
+                if ostcount is not None:
+                    self.ost_count = ostcount
+
+                ostper = self.get_config_entry(cfg, "config", "ostperrabbit", None)
+                if ostcount is not None:
+                    self.ost_per_rabbit = ostper
+
+                preview = self.get_config_entry(cfg, "config", "preview", None)
+                if preview is not None:
+                    self.preview = preview
+
+                pretty = self.get_config_entry(cfg, "config", "pretty", None)
+                if pretty is not None:
+                    self.pretty = pretty
+                    Console.pretty = pretty
+
+                quiet = self.get_config_entry(cfg, "config", "quiet", None)
+                if quiet is not None:
+                    self.quiet = quiet
+
+                regex = self.get_config_entry(cfg, "config", "regex", None)
+                if regex is not None:
+                    self.regexEnabled = regex
+
+                reuse = self.get_config_entry(cfg, "config", "reuse_rabbit", None)
+                if reuse is not None:
+                    self.reuse_rabbit = reuse
+
+                userid = self.get_config_entry(cfg, "config", "userid", None)
+                if userid is not None:
+                    if (isinstance(userid, str)):
+                        userid = int(self.replace_vars(userid))
+                    self.user_id = userid
+
+                wfrname = self.get_config_entry(cfg, "config", "wfrname", None)
+                if wfrname is not None:
+                    self.wfr_name = wfrname
+
+                wlmid = self.get_config_entry(cfg, "config", "wlmid", None)
+                if wlmid is not None:
+                    self.wlm_id = wlmid
 
     def to_json(self):
         return json.dumps({x: self.__dict__[x] for x in self.__dict__ if x not in ['seq_gen']})

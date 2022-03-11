@@ -159,7 +159,10 @@ class DWS:
             crd_api = k8s_client.CustomObjectsApi()
             try:
                 storage_list = crd_api.list_cluster_custom_object(group, version, "storages")
-                Console.pretty_json(storage_list)
+
+                if Console.level_enabled(Console.WORDY):
+                    Console.pretty_json(storage_list)
+
                 for storage in storage_list['items']:
                     storage_obj = Storage(storage)
                     if only_ready_storage and not storage_obj.is_ready:

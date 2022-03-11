@@ -1,0 +1,127 @@
+system:
+  nnf-nodes:
+    - metadata:
+        namespace: rabbit-01
+        name: rabbit-01
+        desc: Rabbit 01
+      data:
+        capacity: 39582418599936
+        status: Ready
+        access:
+          computes:
+          - { health: OK, id: 101, name: compute_r01_01, status: Ready }
+          - { health: OK, id: 102, name: compute_r01_02, status: Ready }
+          - { health: OK, id: 103, name: compute_r01_03, status: Ready }
+          - { health: OK, id: 104, name: compute_r01_04, status: Ready }
+          - { health: OK, id: 105, name: compute_r01_05, status: Ready }
+          - { health: OK, id: 106, name: compute_r01_06, status: Ready }
+          - { health: OK, id: 107, name: compute_r01_07, status: Ready }
+          - { health: OK, id: 108, name: compute_r01_08, status: Ready }
+          - { health: OK, id: 109, name: compute_r01_09, status: Ready }
+          - { health: OK, id: 110, name: compute_r01_10, status: Ready }
+          - { health: OK, id: 111, name: compute_r01_11, status: Ready }
+          - { health: OK, id: 112, name: compute_r01_12, status: Ready }
+          - { health: OK, id: 113, name: compute_r01_13, status: Ready }
+          - { health: OK, id: 114, name: compute_r01_14, status: Ready }
+          - { health: OK, id: 115, name: compute_r01_15, status: Ready }
+          - { health: OK, id: 116, name: compute_r01_16, status: Ready }
+    - metadata:
+        namespace: rabbit-02
+        name: rabbit-02
+        desc: Rabbit 02
+      data:
+        capacity: 39582418599936
+        status: Ready
+        access:
+          computes:
+          - { health: OK, id: 201, name: compute_r02_01, status: Ready }
+          - { health: OK, id: 202, name: compute_r02_02, status: Ready }
+          - { health: OK, id: 203, name: compute_r02_03, status: Ready }
+          - { health: OK, id: 204, name: compute_r02_04, status: Ready }
+          - { health: OK, id: 205, name: compute_r02_05, status: Ready }
+          - { health: OK, id: 206, name: compute_r02_06, status: Ready }
+          - { health: OK, id: 207, name: compute_r02_07, status: Ready }
+          - { health: OK, id: 208, name: compute_r02_08, status: Ready }
+          - { health: OK, id: 209, name: compute_r02_09, status: Ready }
+          - { health: OK, id: 210, name: compute_r02_10, status: Ready }
+          - { health: OK, id: 211, name: compute_r02_11, status: Ready }
+          - { health: OK, id: 212, name: compute_r02_12, status: Ready }
+          - { health: OK, id: 213, name: compute_r02_13, status: Ready }
+          - { health: OK, id: 214, name: compute_r02_14, status: Ready }
+          - { health: OK, id: 215, name: compute_r02_15, status: Ready }
+          - { health: OK, id: 216, name: compute_r02_16, status: Ready }
+    - metadata:
+        namespace: rabbit-03
+        name: rabbit-03
+        desc: Rabbit 03
+      data:
+        capacity: 39582418599936
+        status: Ready
+        access:
+          computes:
+          - { health: OK, id: 301, name: compute_r03_01, status: Ready }
+          - { health: OK, id: 302, name: compute_r03_02, status: Ready }
+          - { health: OK, id: 303, name: compute_r03_03, status: Ready }
+          - { health: OK, id: 304, name: compute_r03_04, status: Ready }
+          - { health: OK, id: 305, name: compute_r03_05, status: Ready }
+          - { health: OK, id: 306, name: compute_r03_06, status: Ready }
+          - { health: OK, id: 307, name: compute_r03_07, status: Ready }
+          - { health: OK, id: 308, name: compute_r03_08, status: Ready }
+          - { health: OK, id: 309, name: compute_r03_09, status: Ready }
+          - { health: OK, id: 310, name: compute_r03_10, status: Ready }
+          - { health: OK, id: 311, name: compute_r03_11, status: Ready }
+          - { health: OK, id: 312, name: compute_r03_12, status: Ready }
+          - { health: OK, id: 313, name: compute_r03_13, status: Ready }
+          - { health: OK, id: 314, name: compute_r03_14, status: Ready }
+          - { health: OK, id: 315, name: compute_r03_15, status: Ready }
+          - { health: OK, id: 316, name: compute_r03_16, status: Ready }
+    - metadata:
+        namespace: rabbit-04
+        name: rabbit-04
+        desc: Rabbit 04
+      data:
+        capacity: 39582418599936
+        status: Ready
+        access:
+          computes:
+          - { health: OK, id: 401, name: compute_r04_01, status: Ready }
+          - { health: OK, id: 402, name: compute_r04_02, status: Ready }
+          - { health: OK, id: 403, name: compute_r04_03, status: Ready }
+          - { health: OK, id: 404, name: compute_r04_04, status: Ready }
+          - { health: OK, id: 405, name: compute_r04_05, status: Ready }
+          - { health: OK, id: 406, name: compute_r04_06, status: Ready }
+          - { health: OK, id: 407, name: compute_r04_07, status: Ready }
+          - { health: OK, id: 408, name: compute_r04_08, status: Ready }
+          - { health: OK, id: 409, name: compute_r04_09, status: Ready }
+          - { health: OK, id: 410, name: compute_r04_10, status: Ready }
+          - { health: OK, id: 411, name: compute_r04_11, status: Ready }
+          - { health: OK, id: 412, name: compute_r04_12, status: Ready }
+          - { health: OK, id: 413, name: compute_r04_13, status: Ready }
+          - { health: OK, id: 414, name: compute_r04_14, status: Ready }
+          - { health: OK, id: 415, name: compute_r04_15, status: Ready }
+          - { health: OK, id: 416, name: compute_r04_16, status: Ready }
+    - metadata:
+        namespace: rabbit-05
+        name: rabbit-05
+        desc: Rabbit 05
+      data:
+        capacity: 39582418599936
+        status: Ready
+        access:
+          computes:
+          - { health: OK, id: 501, name: compute_r05_01, status: Ready }
+          - { health: OK, id: 502, name: compute_r05_02, status: Ready }
+          - { health: OK, id: 503, name: compute_r05_03, status: Ready }
+          - { health: OK, id: 504, name: compute_r05_04, status: Ready }
+          - { health: OK, id: 505, name: compute_r05_05, status: Ready }
+          - { health: OK, id: 506, name: compute_r05_06, status: Ready }
+          - { health: OK, id: 507, name: compute_r05_07, status: Ready }
+          - { health: OK, id: 508, name: compute_r05_08, status: Ready }
+          - { health: OK, id: 509, name: compute_r05_09, status: Ready }
+          - { health: OK, id: 510, name: compute_r05_10, status: Ready }
+          - { health: OK, id: 511, name: compute_r05_11, status: Ready }
+          - { health: OK, id: 512, name: compute_r05_12, status: Ready }
+          - { health: OK, id: 513, name: compute_r05_13, status: Ready }
+          - { health: OK, id: 514, name: compute_r05_14, status: Ready }
+          - { health: OK, id: 515, name: compute_r05_15, status: Ready }
+          - { health: OK, id: 516, name: compute_r05_16, status: Ready }

@@ -179,6 +179,30 @@
             "program": "dwsutil.py",
             "args": ["--operation", "assignresources", "-n", "dp1b-wfr-20220217131605", "-c", "./localdata/dwsutil-dp1b.cfg", "--noreuse", "--nodes", "35"],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: dwsutil(dp1b) - assignservers - xfs - 12 computes ",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-c", "./localdata/dwsutil-dp1b-xfs.cfg", "-i", "data/inventory_5_rabbits.yaml", "--operation", "assignservers", "--nodes", "12", "--preview", "-v", "-v", "-v"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: dwsutil(dp1b) - assignservers - lustre - 12 computes ",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-c", "./localdata/dwsutil-dp1b-lustre.cfg", "-i", "data/inventory_5_rabbits.yaml", "--operation", "assignservers", "--nodes", "12", "--preview", "-v", "-v", "-v"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: dwsutil(dp1b) - assignservers - lustre - prescriptive ",
+            "type": "python",
+            "request": "launch",
+            "program": "dwsutil.py",
+            "args": ["-c", "./localdata/dwsutil-dp1b-lustre.cfg", "-i", "data/inventory_5_rabbits.yaml", "--operation", "assignservers", "--alloc", "fs-lustre;mgt=rabbit-01;mdt=rabbit-02;ost=rabbit-03:2,rabbit-04:2", "--preview", "-v", "-v", "-v"],
+            "console": "integratedTerminal"
         }
    ],
     "inputs": [

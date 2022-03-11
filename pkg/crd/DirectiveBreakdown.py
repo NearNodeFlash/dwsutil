@@ -25,6 +25,16 @@ class DirectiveBreakdown:
         return self._raw_breakdown['metadata']['name']
 
     @property
+    def dw_name(self):
+        """Returns the #dw name."""
+        return self._raw_breakdown['spec']['name']
+
+    @property
+    def dw(self):
+        """Returns the #dw directive."""
+        return self._raw_breakdown['spec']['dwRecord']['dwDirective']
+
+    @property
     def server_obj(self):
         """Returns tuple with Server CR name and namespace."""
         if 'servers' not in self._raw_breakdown['status']:
