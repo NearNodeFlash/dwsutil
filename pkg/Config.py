@@ -729,16 +729,22 @@ class Config:
 
                 directives = self.get_config_entry(cfg, "config", "directives", None)
                 if directives is not None:
+                    if not isinstance(directives, type([])):
+                        self.usage("'directives' configuration entry must be a list of datawarp directives, for example:\n\ndirectives:\n  - dw: \"#dw jobdw name='mystorage'...\"\n")
                     for directive in directives:
                         self.dwdirectives.append(self.replace_vars(directive["dw"]))
 
                 excludes = self.get_config_entry(cfg, "config", "exclude_computes", None)
                 if excludes is not None:
+                    if not isinstance(excludes, type([])):
+                        self.usage("'exclude_computes' configuration entry must be a list of compute names to exclude, for example:\n\nexclude_computes:\n  - name: compute1\n  - name: compute2\n")
                     for exclude in excludes:
                         self.exclude_computes.append(exclude["name"])
 
                 excludes = self.get_config_entry(cfg, "config", "exclude_rabbits", None)
                 if excludes is not None:
+                    if not isinstance(excludes, type([])):
+                        self.usage("'exclude_rabbits' configuration entry must be a list of rabbit names to exclude, for example:\n\nexclude_rabbits:\n  - name: rabbit1\n  - name: rabbit2\n")
                     for exclude in excludes:
                         self.exclude_rabbits.append(exclude["name"])
 
