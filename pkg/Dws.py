@@ -324,13 +324,14 @@ class DWS:
                 raise DWSError(msg, DWSError.DWS_NOTFOUND, err)
             raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
 
-    def wfr_create(self, wfrname, dwdirectives, userId, wlmId, jobId, new_client=None, group="dws.cray.hpe.com", version="v1alpha1"):
+    def wfr_create(self, wfrname, dwdirectives, userId, groupId, wlmId, jobId, new_client=None, group="dws.cray.hpe.com", version="v1alpha1"):
         """Create a new Workflow CR.
 
         Parameters:
         name : Name of the Workflow CR
         dwdirectives : Any array of #dw strings
-        userId : Any array of #dw strings
+        userId : User ID
+        groupId : Group ID
         wlmId: Valid WLM id
         jobId: Valid job id
         new_client - DEPRECATED, will be refactored
@@ -340,7 +341,7 @@ class DWS:
         """
 
         with Console.trace_function():
-            body = Workflow.body_template(wfrname, wlmId, jobId, userId, dwdirectives, "proposal", group, version)
+            body = Workflow.body_template(wfrname, wlmId, jobId, userId, groupId, dwdirectives, "proposal", group, version)
             Console.debug(Console.WORDY, body)
             # Console.pretty_json(body)
             # TODO: Get rid of the new_client stuff

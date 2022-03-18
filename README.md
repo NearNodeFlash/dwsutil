@@ -64,7 +64,7 @@ Many of the command line options may be specified in a configuration file.
 - All of the fields are optional and have defaults in dwsutil
 - Individual items in a config file may be commented out with a '#'
 - The path for the k8s config file may contain environment variables
-- The following variable replacements are supported in wfrname, #dw, jobid, and userid (applies to config and command line args)
+- The following variable replacements are supported in wfrname, #dw, jobid, userid, and groupid (applies to config and command line args)
   - $(startime) - The time dwsutil was started in the form yyyymmddhhmmss
   - $(time) - The current date time in the form yyyymmddhhmmssW where W is a unique integer counter for uniqueness
   - $(randint) - A random integer value between 0 and sys.maxsize
@@ -77,6 +77,7 @@ k8s:
   context: kind-vm
 config:
   userid: 1001
+  groupid: 1001
   jobid: $(randintid)
   wlmid: "flux01"
   wfrname: "testwfr-$(starttime)"
@@ -137,8 +138,9 @@ Some examples:
 ```
 $ ./dwsutil.py --<TAB><TAB>
 --config       --exr          --kcfg         --name         --notimestamp  --pretty       --userid
---context      --inventory    --kctx         --node         --opcount      --regex        --version
---exc          --jobid        --munge        --noreuse      --operation    --showconfig   --wlmid
+--groupid      --context      --inventory    --kctx         --node         --opcount      --regex
+--version      --exc          --jobid        --munge        --noreuse      --operation    --showconfig
+--wlmid
 
 $ ./dwsutil.py --op<TAB><TAB>
 --opcount    --operation
