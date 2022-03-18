@@ -11,7 +11,7 @@ from ..Console import Console
 
 class Workflow:
     """Encapsulates the Workflow CR."""
-    def body_template(wfrname, wlmId, jobId, userId, dwdirectives, desiredState="proposal", group="dws.cray.hpe.com", version="v1alpha1"):
+    def body_template(wfrname, wlmId, jobId, userId, groupId, dwdirectives, desiredState="proposal", group="dws.cray.hpe.com", version="v1alpha1"):
         body = {
             "kind": "Workflow",
             "apiVersion": f"{group}/{version}",
@@ -22,6 +22,7 @@ class Workflow:
                 "wlmID": wlmId,
                 "jobID": jobId,
                 "userID": userId,
+                "groupID": groupId,
                 "desiredState": "proposal",
                 "dwDirectives": dwdirectives
             }
@@ -29,7 +30,7 @@ class Workflow:
 
         return body
 
-    def body_template_INVALID(wfrname, wlmId, jobId, userId, dwdirectives, desiredState="proposal", group="dws.cray.hpe.com", version="v1alpha1"):
+    def body_template_INVALID(wfrname, wlmId, jobId, userId, groupId, dwdirectives, desiredState="proposal", group="dws.cray.hpe.com", version="v1alpha1"):
         server_obj = f"{wfrname}-0"
         body = {
             "kind": "Workflow",
@@ -41,6 +42,7 @@ class Workflow:
                 "wlmID": wlmId,
                 "jobID": jobId,
                 "userID": userId,
+                "groupID" : groupId,
                 "desiredState": "proposal",
                 "dwDirectives": dwdirectives
             },
@@ -199,6 +201,10 @@ class Workflow:
         return self.raw_wfr['spec']['userID']
 
     @property
+    def groupID(self):
+        return self.raw_wfr['spec']['groupID']
+
+    @property
     def directive_breakdown_names(self):
         """Returns the Workflow directiveBreakdowns list (of names)."""
         if 'status' not in self.raw_wfr or \
@@ -250,5 +256,6 @@ class Workflow:
             Console.output(f"     jobID: {self.jobID}")
             Console.output(f"     wlmID: {self.wlmID}")
             Console.output(f"     userID: {self.userID}")
+            Console.output(f"     groupID: {self.groupID}")
             Console.output(
                 f"     directiveBreakdownNames: {self.directive_breakdown_names}")
