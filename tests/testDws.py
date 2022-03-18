@@ -345,17 +345,12 @@ class TestDWS(unittest.TestCase, TestUtil):
 
     def test_dws_update_servers(self):
         test_breakdown_name = "mybreakdown"
-        with patch("kubernetes.client.api.custom_objects_api.CustomObjectsApi.get_namespaced_custom_object") as function_mock:
-            function_mock.side_effect = self.side_effect_breakdown_get
-            function_mock.return_value = TestUtil.WFR_JSON
-            breakdown = self.dws.directivebreakdown_get(test_breakdown_name)
-            self.assertEqual(breakdown.name, test_breakdown_name)
-            with patch("kubernetes.client.api.custom_objects_api.CustomObjectsApi.patch_namespaced_custom_object") as function_mock:
-                function_mock.side_effect = self.side_effect_breakdown_get
-                function_mock.return_value = TestUtil.WFR_JSON
-                node = Storage(TestUtil.STORAGE_JSON)
-                nodes = {node.name: node}
-                self.dws.wfr_update_servers(breakdown, 1000, nodes)
+        serverObj = {"name": "w-0", "namespace": "default"}
+        ba = {"name": test_breakdown_name, "serverObj": serverObj, "allocationSet": []}
+        with patch("kubernetes.client.api.custom_objects_api.CustomObjectsApi.patch_namespaced_custom_object") as patch_mock:
+            patch_mock.side_effect = self.side_effect_breakdown_get
+            patch_mock.return_value = TestUtil.WFR_JSON
+            self.dws.wfr_update_servers(ba)
 
     def test_dws_inventory_build_from_cluster(self):
         with patch("kubernetes.client.api.custom_objects_api.CustomObjectsApi.list_cluster_custom_object") as function_mock:
