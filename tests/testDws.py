@@ -208,9 +208,10 @@ class TestDWS(unittest.TestCase, TestUtil):
         with patch("kubernetes.client.api.custom_objects_api.CustomObjectsApi.create_namespaced_custom_object") as function_mock_get:
             function_mock_get.side_effect = self.side_effect_wfr_create
             function_mock_get.return_value = TestUtil.WFR_JSON
-            wfr = self.dws.wfr_create(test_wfr_name, ["#dw01"], 111, "Flux01", 333)
+            wfr = self.dws.wfr_create(test_wfr_name, ["#dw01"], 111, 0, "Flux01", 333)
             self.assertEqual(wfr.name, test_wfr_name)
             self.assertEqual(wfr.userID, 111)
+            self.assertEqual(wfr.groupID, 0)
             self.assertEqual(wfr.jobID, 333)
             self.assertEqual(wfr.wlmID, "Flux01")
             self.assertTrue("#dw01" in wfr.dwDirectives)

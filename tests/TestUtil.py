@@ -620,6 +620,7 @@ class TestUtil(object):
             "dwDirectives": [],
             "jobID": 0,
             "userID": 0,
+            "groupID": 0,
             "wlmID": ""
         },
         "status": {
@@ -700,6 +701,7 @@ class TestUtil(object):
                     "dwDirectives": [],
                     "jobID": 0,
                     "userID": 0,
+                    "groupID": 0,
                     "wlmID": ""
                 },
                 "status": {
@@ -770,6 +772,7 @@ class TestUtil(object):
                     "dwDirectives": [],
                     "jobID": 0,
                     "userID": 0,
+                    "groupID": 0,
                     "wlmID": ""
                 },
                 "status": {

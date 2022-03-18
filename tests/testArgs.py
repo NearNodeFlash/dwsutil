@@ -110,6 +110,16 @@ class TestArgs(unittest.TestCase, TestUtil):
         config = Config(args)
         self.assertEqual(config.user_id, 99)
 
+    def test_arg_groupid_default(self):
+        args = ["dwsutil", "-c", "tests/empty.cfg"]
+        config = Config(args)
+        self.assertEqual(config.group_id, 0)
+
+    def test_arg_groupid(self):
+        args = ["dwsutil", "--groupid", "99", "-c", "tests/empty.cfg"]
+        config = Config(args)
+        self.assertEqual(config.group_id, 99)
+
     def test_arg_wlmid(self):
         args = ["dwsutil", "--wlmid", "wlmXX", "-c", "tests/empty.cfg"]
         config = Config(args)

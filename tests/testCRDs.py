@@ -35,7 +35,7 @@ class TestCRDs(unittest.TestCase, TestUtil):
     # * Instance methods
     # *********************************************
     def setUp(self):
-        json = Workflow.body_template("wfrtest", "wlm01", 999, 1001, [])
+        json = Workflow.body_template("wfrtest", "wlm01", 999, 0, 1001, [])
         self.general_wfr = Workflow(json)
 
     def tearDown(self):
@@ -56,19 +56,19 @@ class TestCRDs(unittest.TestCase, TestUtil):
         self.assertTrue("cannot be None" in str(ex.exception))
 
     def test_workflow_constructor(self):
-        json = Workflow.body_template("wfrtest", "wlm01", 999, 1001, [])
+        json = Workflow.body_template("wfrtest", "wlm01", 999, 0, 1001, [])
         wfr = Workflow(json)
         self.assertEqual(wfr.name, "wfrtest")
 
     def test_workflow_constructor_deepcopy_1(self):
-        json = Workflow.body_template("wfrtest-01", "wlm01", 999, 1001, [])
+        json = Workflow.body_template("wfrtest-01", "wlm01", 999, 0, 1001, [])
         wfr1 = Workflow(json)
         wfr2 = Workflow(json)
         wfr2.name = "wfrtest-02"
         self.assertNotEqual(wfr1.name, wfr2.name)
 
     def test_workflow_constructor_deepcopy_2(self):
-        json = Workflow.body_template("wfrtest-01", "wlm01", 999, 1001, [])
+        json = Workflow.body_template("wfrtest-01", "wlm01", 999, 0, 1001, [])
         wfr1 = Workflow(json)
         wfr2 = Workflow(json)
         wfr2.raw_json = wfr1.raw_wfr

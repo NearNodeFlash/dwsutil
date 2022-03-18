@@ -67,6 +67,7 @@ class Config:
         self.wlm_id = "5f239bd8-30db-450b-8c2c-a1a7c8631a1a"
         self.wlm_id_source = "default"
         self.user_id = 1001
+        self.group_id = 0
         self.user_id_source = "default"
         self.showconfigonly = False
         self.context = "WFR"
@@ -185,6 +186,7 @@ class Config:
         self.output_usage_item("--showconfig", "Show configuration and quit without doing anything")
 #        self.output_usage_item("--singlethread", "Do not multithread bulk operations")
         self.output_usage_item("-u/--userid <user_id>", "Specify the user id to be used in the Workflow Resource")
+        self.output_usage_item("-g/--groupid <group_id>", "Specify the group id to be used in the Workflow Resource")
         self.output_usage_item("-v", "Incrementally increase verbosity with each flag provided")
         self.output_usage_item("--version", "Show version and exit")
         self.output_usage_item("-w/--wlmid <wlm_id>", "Specify the WLM id to be used in the Workflow Resource")
@@ -319,6 +321,7 @@ class Config:
         self.output_config_item("WLM id", self.wlm_id)
         self.output_config_item("Job id", self.job_id)
         self.output_config_item("User id", self.user_id)
+        self.output_config_item("Group id", self.group_id)
         self.output_config_item("# of nodes", self.nodes)
         self.output_config_item("Exclude computes", self.exclude_computes)
         self.output_config_item("Exclude rabbits", self.exclude_rabbits)
@@ -597,8 +600,15 @@ class Config:
             if arg in ["-u", "--userid"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
-                    self.usage("A User id name must be specified with -n   e.g. -u 1001")
+                    self.usage("A User id name must be specified with -u   e.g. -u 1001")
                 self.user_id = int(self.replace_vars(arg))
+                continue
+
+            if arg in ["-g", "--groupid"]:
+                arg, aidx = self.get_arg(aidx)
+                if arg is None:
+                    self.usage("A group id must be specified with -g   e.g. -g 1001")
+                self.group_id = int(self.replace_vars(arg))
                 continue
 
             if arg in ["-w", "--wlmid"]:
@@ -804,6 +814,12 @@ class Config:
                     if (isinstance(userid, str)):
                         userid = int(self.replace_vars(userid))
                     self.user_id = userid
+
+                groupid = self.get_config_entry(cfg, "config", "groupid", None)
+                if groupid is not None:
+                    if isinstance(groupid, str):
+                        groupid = int(self.replace_vars(groupid))
+                    self.group_id = groupid
 
                 wfrname = self.get_config_entry(cfg, "config", "wfrname", None)
                 if wfrname is not None:
