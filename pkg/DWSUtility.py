@@ -661,6 +661,7 @@ class DWSUtility:
                     self.dws.wfr_create(wfr_name,
                                         self.config.dwdirectives,
                                         self.config.user_id,
+                                        self.config.group_id,
                                         self.config.wlm_id,
                                         self.config.job_id)
                 else:
