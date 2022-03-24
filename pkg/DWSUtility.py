@@ -345,6 +345,8 @@ class DWSUtility:
         elif len(wfr["spec"]["dwDirectives"]) < 1:
             facts.append("WARNING: No datawarp directives in this workflow")
 
+        if wfr["status"]["reason"] == "ERROR":
+            facts.append(f"ERROR: Reason field indicates error: Message is '{wfr['status']['message']}'")
         return wfr, 0, assign_expected
 
     def investigate_computes(self, wfr, facts, objects, assign_expected, expected_but_missing):
@@ -668,7 +670,7 @@ class DWSUtility:
                     Console.debug(Console.MIN, f"Preview mode: WFR {wfr_name} not created")
                 results.append({"name": wfr_name,
                                 "result": "succeeded",
-                                "message": f"Workflow '{wfr_name} created"})
+                                "message": f"Workflow '{wfr_name}' created"})
             except DWSError as ex:
                 results.append({"name": wfr_name, "result": "failed", "message": ex.message})
                 dws_error_code = ex.code
