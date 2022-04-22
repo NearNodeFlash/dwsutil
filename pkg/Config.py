@@ -210,6 +210,7 @@ class Config:
         self.output_usage_item_detail(3, "LIST - List all Storage CRs the system knows about")
         self.output_usage_item_detail(1, "When context = SYSTEM")
         self.output_usage_item_detail(3, "INVESTIGATE - Analyze the current system configuration including nodes, pods, and CRDs")
+        self.output_usage_item_detail(3, "RESOURCELIST - Brief list of resources from the DWS and NNF CRDs")
 
         Console.outputnotsp("\nReturn values:")
         Console.outputnotsp("   0  Operation succeeded")
@@ -220,6 +221,9 @@ class Config:
         Console.outputnotsp("  Show configuration information")
         Console.outputnotsp("     dwsutil.py --showconfig")
         Console.outputnotsp("     dwsutil.py -c dwsutil-mymachine.cfg --showconfig")
+        Console.outputnotsp("-" * 60)
+        Console.outputnotsp("  Show brief list of resources")
+        Console.outputnotsp("     dwsutil.py --context SYSTEM --operation RESOURCELIST")
         Console.outputnotsp("-" * 60)
         Console.outputnotsp("  Show cluster inventory")
         Console.outputnotsp("     dwsutil.py --context INVENTORY --operation SHOW")

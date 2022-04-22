@@ -104,6 +104,7 @@ _comp_dwsutil()
 			;;
 		"sy-"|"sy-i") 
 			COMPREPLY+=("investigate")  
+			COMPREPLY+=("resourcelist")  
 			;;
 		esac
 	else

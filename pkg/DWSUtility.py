@@ -12,6 +12,8 @@ import yaml
 import re
 from functools import reduce
 import queue
+import texttable
+import datetime
 
 import kubernetes.config as k8s_config
 
@@ -23,6 +25,30 @@ from .crd.Storage import Storage
 
 class DWSUtility:
     """Contains the dwsutil base implementation."""
+
+    HPE_DWS_CRDS = [
+        "clientmounts.dws.cray.hpe.com",
+        "computes.dws.cray.hpe.com",
+        "directivebreakdowns.dws.cray.hpe.com",
+        "dwdirectiverules.dws.cray.hpe.com",
+        "persistentstorageinstances.dws.cray.hpe.com",
+        "servers.dws.cray.hpe.com",
+        "storagepools.dws.cray.hpe.com",
+        "storages.dws.cray.hpe.com",
+        "systemconfigurations.dws.cray.hpe.com",
+        "workflows.dws.cray.hpe.com",
+    ]
+
+    HPE_NNF_CRDS = [
+        "nnfaccesses.nnf.cray.hpe.com",
+        "nnfdatamovements.nnf.cray.hpe.com",
+        "nnfnodes.nnf.cray.hpe.com",
+        "nnfnodestorages.nnf.cray.hpe.com",
+        "nnfstorageprofiles.nnf.cray.hpe.com",
+        "nnfstorages.nnf.cray.hpe.com",
+    ]
+
+    HPE_CRDS = HPE_DWS_CRDS + HPE_NNF_CRDS
 
     def preamble(self, stage):
         """Outputs basic DWS Utility information to the console.
@@ -241,24 +267,8 @@ class DWSUtility:
         crd_count = 0
         # NOTE: Any added/deleted CRDs need to be reflected in this list
         unexpected_crd_list = []
-        hpe_crds = [
-            "computes.dws.cray.hpe.com",
-            "clientmounts.dws.cray.hpe.com",
-            "directivebreakdowns.dws.cray.hpe.com",
-            "dwdirectiverules.dws.cray.hpe.com",
-            "servers.dws.cray.hpe.com",
-            "storagepools.dws.cray.hpe.com",
-            "storages.dws.cray.hpe.com",
-            "workflows.dws.cray.hpe.com",
-            "nnfaccesses.nnf.cray.hpe.com",
-            "nnfdatamovements.nnf.cray.hpe.com",
-            "nnfjobstorageinstances.nnf.cray.hpe.com",
-            "nnfnodes.nnf.cray.hpe.com",
-            "nnfnodestorages.nnf.cray.hpe.com",
-            "nnfpersistentstorageinstances.nnf.cray.hpe.com",
-            "nnfstorages.nnf.cray.hpe.com"
-        ]
         crds = self.dws.crd_list()
+        hpe_crds = self.HPE_CRDS.copy()
         for crd in crds.items:
             if "hpe.com" in crd.metadata.name:
                 crd_count += 1
@@ -276,6 +286,123 @@ class DWSUtility:
             facts.extend(unexpected_crd_list)
             facts.append("WARNING: Any legitimate unexpected CRDs should be added to DWSUtility")
         facts.append(f"HPE custom resource definitions: {crd_count}")
+
+    def _age_delta(self, now, timestamp):
+        """Calculate the time delta.
+        
+        Params:
+        now: a datetime value
+        timestamp: a .metadata.creationTimestamp value.  Ex "2022-04-20T21:37:13Z"
+        
+        Returns:
+        A string showing the delta.
+        """
+        date_format_str = '%Y-%m-%dT%H:%M:%S%z'
+        then = datetime.datetime.strptime(timestamp, date_format_str)
+        delta = now - then
+        secs = int(delta.total_seconds())
+        vals = []
+        if secs >= (60 * 60 * 24):
+            days = int(secs / (60 * 60 * 24))
+            secs = int(secs % (60 * 60 * 24))
+            vals.append(f"{days}d")
+        if secs >= (60 * 60):
+            hours = int(secs / (60 * 60))
+            secs = int(secs % (60 * 60))
+            vals.append(f"{hours}h")
+        if secs >= 60:
+            mins = int(secs / 60)
+            secs = int(secs % 60)
+            vals.append(f"{mins}m")
+        if secs > 0:
+            vals.append(f"{secs}s")
+        # Just return the two highest-order values.
+        return ''.join(vals[:2])
+
+    def _walk_path(self, obj, path_ary):
+        """Walk into an object, returning the leaf node.  The path_ary
+           represents a json path, such as ".status.ready", minus the first
+           empty element, so it'll be ['status', 'ready'].  If one component
+           of the path is not present then an empty string is returned at
+           that point.
+
+        Params:
+        obj: A dict that represents a k8s resource.
+        path_ary: A list that has components from a json path.
+
+        Returns:
+        The value of the leaf, as specified in @path_ary.
+        """
+        if path_ary[0] in obj:
+            next = obj[path_ary[0]]
+        else:
+            return ""
+        if len(path_ary) == 1:
+            return next
+        return self._walk_path(next, path_ary[1:])
+
+    def do_resource_list(self):
+        """Brief list of resources from the DWS and NNF CRDs"""
+        hpe_crds = self.HPE_CRDS.copy()
+
+        for crd in hpe_crds:
+            try:
+                crd_obj = self.dws.get_custom_resource_definition(crd)
+            except:
+                continue
+            printer_cols = self.dws.get_crd_printer_columns(crd_obj)
+
+            parts = crd.split('.')
+            group = '.'.join(parts[1:])
+            try:
+                resources = self.dws.list_cluster_custom_object(parts[0], group)
+            except:
+                continue
+
+            Console.output(f"=== {parts[0]}", output_timestamp=False)
+            if len(resources) == 0:
+                Console.output("", output_timestamp=False)
+                continue
+
+            table = texttable.Texttable(0)
+            table.set_deco(texttable.Texttable.HEADER)
+            headers = ['NAMESPACE', 'NAME']
+            if printer_cols is None:
+                headers.append('AGE')
+            else:
+                # Add the custom printer column headers.
+                for pcol in printer_cols:
+                    if pcol.priority is None:
+                        headers.append(pcol.name)
+            table.add_row(headers)
+
+            now = datetime.datetime.now(datetime.timezone.utc)
+            for n in resources:
+                row = [n['metadata']['namespace'], n['metadata']['name']]
+                if printer_cols is None:
+                    row.append(self._age_delta(now, n['metadata']['creationTimestamp']))
+                else:
+                    # Add the custom printer column values.
+                    for pcol in printer_cols:
+                        if pcol.priority is None:
+                            # Split the path, dropping the leading empty dot element.   
+                            path = pcol.json_path.split('.')[1:]
+                            val = self._walk_path(n, path)
+                            if val == "":
+                                pass
+                            elif str(pcol.type) == 'boolean':
+                                val = "true" if val else "false"
+                            elif str(pcol.type) == 'integer':
+                                val = int(val)
+                            elif str(pcol.type) == 'date':
+                                val = self._age_delta(now, val)
+                            row.append(val)
+                table.add_row(row)
+
+            Console.output(table.draw(), output_timestamp=False)
+            Console.output("", output_timestamp=False)
+
+        return 0
 
     def do_investigate_system(self):
         """Investigate the cluster configuration"""
@@ -1705,6 +1832,8 @@ class DWSUtility:
             elif self.config.context == "SYSTEM":
                 if self.config.operation == "INVESTIGATE":
                     ret_code = self.do_investigate_system()
+                elif self.config.operation == "RESOURCELIST":
+                    ret_code = self.do_resource_list()
                 else:
                     self.config.usage(f"Unrecognized operation {self.config.operation} specified for {self.config.context}")
 

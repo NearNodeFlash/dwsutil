@@ -8,6 +8,7 @@
 #
 # -----------------------------------------------------------------
 
+import copy
 import os
 import sys
 
@@ -236,6 +237,69 @@ class DWS:
                 return storages
             except k8s_client.exceptions.ApiException as err:  # pragma: no cover
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
+
+    def list_cluster_custom_object(self, plural, group, version="v1alpha1"):
+        """Retrieve a list of resource objects of a specified kind, across namespaces
+
+        Parameters:
+        plural: Kind of the CRD, in plural form
+        group: Group of the CRD
+
+        Returns:
+        a list of resource objects of the given kind, across all namespaces
+        """
+
+        with Console.trace_function():
+            resources = []
+            crd_api = k8s_client.CustomObjectsApi()
+            try:
+                res_list = crd_api.list_cluster_custom_object(group, version, plural)
+                for res in res_list['items']:
+                    resources.append(copy.deepcopy(res))
+                return resources
+            except k8s_client.exceptions.ApiException as err:  # pragma: no cover
+                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
+
+    def get_custom_resource_definition(self, crd_name):
+        """Retrieve a Custom Resource Definition (CRD) object
+
+        Parameters:
+        crd_name: Name of the CRD.  Ex: workflows.dws.cray.hpe.com
+
+        Returns:
+        An object of type V1CustomResourceDefinition.
+        """
+
+        # The ApiextensionsV1Api.list_custom_resource_definition() is a
+        # heavy hammer.  The following is more targeted.
+        with Console.trace_function():
+            api = k8s_client.ApiClient()
+            try:
+                crd_obj, _, _ = api.call_api(
+                    f"/apis/apiextensions.k8s.io/v1/customresourcedefinitions/{crd_name}",
+                    'GET',
+                    response_type='V1CustomResourceDefinition')
+            except k8s_client.exceptions.ApiException as err:  # pragma: no cover
+                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
+
+            return crd_obj
+
+    def get_crd_printer_columns(self, crd_obj):
+            """ Retrieve the additionalPrinterColumns from a given CRD.
+            
+            Parameters:
+            crd_obj: An object of type V1CustomResourceDefinition.
+
+            Returns:
+            An list-like object of type V1CustomResourceDefinitionVersion, containing elements of type V1CustomResourceColumnDefinition.
+            """
+
+            if not isinstance(crd_obj, k8s_client.V1CustomResourceDefinition):
+                raise DWSError("Expected V1CustomResourceDefinition", 0, "")
+            spec = crd_obj.spec
+            versions = spec.versions
+            cols = versions[0].additional_printer_columns
+            return cols
 
     # Workflow Resource Routines
     def wfr_list_names(self, group="dws.cray.hpe.com", version="v1alpha1"):
