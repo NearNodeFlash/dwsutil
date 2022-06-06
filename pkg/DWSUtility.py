@@ -58,6 +58,8 @@ class DWSUtility:
         "nnfnodestorages.nnf.cray.hpe.com",
         "nnfstorageprofiles.nnf.cray.hpe.com",
         "nnfstorages.nnf.cray.hpe.com",
+        "rsyncnodedatamovements.dm.cray.hpe.com",
+        "rsynctemplates.dm.cray.hpe.com",
     ]
 
     HPE_CRDS = HPE_DWS_CRDS + HPE_NNF_CRDS
