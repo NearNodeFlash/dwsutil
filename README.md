@@ -26,7 +26,7 @@ NOTE: This approach is based on venv and always requires you to source venv/bin/
 
 
 ```
-$ git clone git@github.hpe.com:hpe/hpc-rabsw-dwsutil.git ; cd hpc-rabsw-dwsutil
+$ git clone https://github.com/NearNodeFlash/dwsutil.git ; cd dwsutil
 
 $ python3 -m venv venv
 

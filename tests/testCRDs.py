@@ -276,8 +276,13 @@ class TestCRDs(unittest.TestCase, TestUtil):
         self.assertEqual(server_obj[0], "w-0")
         self.assertEqual(server_obj[1], "default")
 
-    def test_directivebreakdown_field_server_obj_server_missing(self):
-        breakdown = DirectiveBreakdown(TestUtil.BREAKDOWNNOSERVERS_JSON)
+    def test_directivebreakdown_field_server_obj_storage_missing(self):
+        breakdown = DirectiveBreakdown(TestUtil.BREAKDOWNNOSTORAGE_JSON)
+        server_obj = breakdown.server_obj
+        self.assertIsNone(server_obj)
+
+    def test_directivebreakdown_field_server_obj_reference_missing(self):
+        breakdown = DirectiveBreakdown(TestUtil.BREAKDOWNNOREFERENCE_JSON)
         server_obj = breakdown.server_obj
         self.assertIsNone(server_obj)
 

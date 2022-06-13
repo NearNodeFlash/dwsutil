@@ -39,27 +39,37 @@ class DirectiveBreakdown:
     @property
     def dw_name(self):
         """Returns the #dw name."""
-        return self._raw_breakdown['spec']['name']
+        args = self.dw.split()
+        for arg in args:
+           if arg.startswith("name"):
+              nameArg = arg.split('=')
+              return nameArg[1]
+
+        return None
 
     @property
     def dw(self):
         """Returns the #dw directive."""
-        return self._raw_breakdown['spec']['dwRecord']['dwDirective']
+        return self._raw_breakdown['spec']['directive']
 
     @property
     def server_obj(self):
         """Returns tuple with Server CR name and namespace."""
-        if 'servers' not in self._raw_breakdown['status']:
+        if 'storage' not in self._raw_breakdown['status']:
             return None
-        return [self._raw_breakdown['status']['servers']['name'],
-                self._raw_breakdown['status']['servers']['namespace']]
+        if 'reference' not in self._raw_breakdown['status']['storage']:
+            return None
+        return [self._raw_breakdown['status']['storage']['reference']['name'],
+                self._raw_breakdown['status']['storage']['reference']['namespace']]
 
     @property
     def allocationSet(self):
         """Returns a list of Allocation objects for this breakdown."""
         allocations = []
-        allocationset = self._raw_breakdown['status']['allocationSet']
-        for allocobj in allocationset:
+        if 'storage' not in self._raw_breakdown['status']:
+            return None
+        allocationsets = self._raw_breakdown['status']['storage']['allocationSets']
+        for allocobj in allocationsets:
             obj = Allocation(allocobj)
             allocations.append(obj)
         return allocations
