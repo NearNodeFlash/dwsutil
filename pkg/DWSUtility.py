@@ -1360,6 +1360,7 @@ class DWSUtility:
                 if not rabbit_obj.is_ready:
                     Console.debug(Console.WORDY, f"nnf node {rabbit_name} is not ready, excluding")
                     continue
+                Console.debug(Console.WORDY, f"nnf node {rabbit_name} is ready and will be included")
                 ready_rabbits[rabbit_name] = rabbit_obj
             rabbits = ready_rabbits
 
@@ -1659,7 +1660,8 @@ class DWSUtility:
                                 Console.pretty_json(assignment)
                             Console.debug(Console.WORDY, "-" * 40)
                     else:
-                        alloc_size = round(alloc.minimumCapacity / (self.config.ost_count + self.config.ost_per_rabbit))
+#                        alloc_size = round(alloc.minimumCapacity / (self.config.ost_count + self.config.ost_per_rabbit))
+                        alloc_size = round(alloc.minimumCapacity / self.config.ost_count)
                         Console.debug(Console.MIN, f"type: {alloc.label}, min capacity: {alloc.minimumCapacity}, rabbits: {self.config.ost_count}, per rabbit: {self.config.ost_per_rabbit}, alloc size: {alloc_size}")
 
                         # Pass 1: Look for rabbits other than the MGT/MDT hosts

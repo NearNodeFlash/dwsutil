@@ -170,6 +170,8 @@ class Config:
         self.output_usage_item("--alloc specification", "Specify the allocation format for Lustre")
         self.output_usage_item_detail(1, "specification format: fs-name;mgt=somerabbit;mdt=somerabbit;ost=somerabbit")
         self.output_usage_item_detail(1, "   where fs-name is the name in a given #dw")
+        self.output_usage_item_detail(1, "   multiple servers may be specified for ost by separating them with ','")
+        self.output_usage_item_detail(1, "   allocations per server may be specified by suffixing the server name with :<count>, default is 1")
         self.output_usage_item_detail(1, "   Note: You must specify all components, mgt, mdt, and ost")
         self.output_usage_item("-c/--config <configfile>", "Specify simulator configuration file")
         self.output_usage_item("--dw '#DW ....'", "Add a DataWarp directive, may occur multiple times")
@@ -387,7 +389,7 @@ class Config:
         Nothing
         """
         if alloc_str is None:
-            self.usage("An alloc recipe must be specified with --allow   e.g. -alloc \"fs-name;mgt=somerabbit;mdt=somerabbit;ost=somerabbit\"")
+            self.usage("An alloc recipe must be specified with --alloc   e.g. -alloc \"fs-name;mgt=somerabbit;mdt=somerabbit;ost=somerabbit\"")
 
         self.alloc_raw.append(alloc_str)
         alloc = alloc_str.split(";")
