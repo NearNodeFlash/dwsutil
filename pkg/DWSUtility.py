@@ -530,33 +530,39 @@ class DWSUtility:
                 Console.pretty_json(breakdown)
 
                 # Dump out servers for this breakdown
-                if 'servers' not in breakdown['status']:
+                if 'storage' not in breakdown['status']:
                     if assign_expected:
                         facts.append(f"WARNING: Workflow desiredState is '{wfr['spec']['desiredState']}' but no servers have been assigned")
                     else:
-                        facts.append(f"DirectiveBreakdown: {bdname} does not have a servers element")
+                        facts.append(f"DirectiveBreakdown: {bdname} does not have a storage element")
                 else:
-                    servers = breakdown['status']['servers']
-                    svrname = servers['name']
-                    svrnamespace = servers['namespace']
-                    try:
-                        server = self.dws.crd_get_raw("servers", svrname, svrnamespace)
-                        if len(server['metadata']['ownerReferences']) > 0:
-                            objects.append(self.object_str("Server", f"{svrnamespace}.{svrname}", f"{server['metadata']['creationTimestamp']}", f"{server['metadata']['ownerReferences'][0]['kind']} {server['metadata']['ownerReferences'][0]['name']}"))
+                    if 'reference' not in breakdown['status']['storage']:
+                        if assign_expected:
+                            facts.append(f"WARNING: Workflow desiredState is '{wfr['spec']['desiredState']}' but no servers have been assigned")
                         else:
-                            objects.append(self.object_str("Server", f"{svrnamespace}.{svrname}", f"{server['metadata']['creationTimestamp']}"))
-                        if 'allocationSets' in server['status']:
-                            facts.append(f"WORKFLOW: Servers have been assigned to '{bdname}'")
-                        elif assign_expected:
-                            facts.append(f"WARNING: Workflow desiredState is '{wfr['spec']['desiredState']}' but no servers have been assigned to '{bdname}'")
-                        server["metadata"].pop("managedFields")
-                        Console.output(f"{'-'*20} Object: Server {svrnamespace}.{svrname} {'-'*20}", output_timestamp=False)
-                        Console.pretty_json(server)
-                    except DWSError as ex:
-                        objects.append(self.object_str("Servers", f"{svrnamespace}.{svrname}", not_found=True))
-                        expected_but_missing.append(f"{svrnamespace}.directivebreakdowns.{svrname}")
-                        objects.append(f"Servers: {svrnamespace}.{svrname} - NOT FOUND")
-                        facts.append(f"WARNING: {ex.message}")
+                            facts.append(f"DirectiveBreakdown: {bdname} does not have a reference element")
+                    else:
+                        servers = breakdown['status']['storage']['reference']
+                        svrname = servers['name']
+                        svrnamespace = servers['namespace']
+                        try:
+                            server = self.dws.crd_get_raw("servers", svrname, svrnamespace)
+                            if len(server['metadata']['ownerReferences']) > 0:
+                                objects.append(self.object_str("Server", f"{svrnamespace}.{svrname}", f"{server['metadata']['creationTimestamp']}", f"{server['metadata']['ownerReferences'][0]['kind']} {server['metadata']['ownerReferences'][0]['name']}"))
+                            else:
+                                objects.append(self.object_str("Server", f"{svrnamespace}.{svrname}", f"{server['metadata']['creationTimestamp']}"))
+                            if 'allocationSets' in server['status']:
+                                facts.append(f"WORKFLOW: Servers have been assigned to '{bdname}'")
+                            elif assign_expected:
+                                facts.append(f"WARNING: Workflow desiredState is '{wfr['spec']['desiredState']}' but no servers have been assigned to '{bdname}'")
+                            server["metadata"].pop("managedFields")
+                            Console.output(f"{'-'*20} Object: Server {svrnamespace}.{svrname} {'-'*20}", output_timestamp=False)
+                            Console.pretty_json(server)
+                        except DWSError as ex:
+                            objects.append(self.object_str("Servers", f"{svrnamespace}.{svrname}", not_found=True))
+                            expected_but_missing.append(f"{svrnamespace}.directivebreakdowns.{svrname}")
+                            objects.append(f"Servers: {svrnamespace}.{svrname} - NOT FOUND")
+                            facts.append(f"WARNING: {ex.message}")
             except DWSError as ex:
                 objects.append(self.object_str("DirectiveBreakdowns", f"{bdnamespace}.{bdname}", not_found=True))
                 expected_but_missing.append(f"{bdnamespace}.directivebreakdowns.{bdname}")

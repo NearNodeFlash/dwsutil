@@ -51,46 +51,103 @@ class TestUtil(object):
             "name": "mybreakdown"
         },
         "status": {
-            "allocationSet": [
-                {
-                    "allocationStrategy": "AllocatePerCompute",
-                    "constraints": {
-                        "labels": [
-                            "dws.cray.hpe.com/storage=Rabbit"
-                        ]
-                    },
-                    "label": "xfs",
-                    "minimumCapacity": 5000000000
+            "storage": {
+                "allocationSets": [
+                    {
+                        "allocationStrategy": "AllocatePerCompute",
+                        "constraints": {
+                            "labels": [
+                                "dws.cray.hpe.com/storage=Rabbit"
+                            ]
+                        },
+                        "label": "xfs",
+                        "minimumCapacity": 5000000000
+                    }
+                ],
+                "reference": {
+                    "kind": "Servers",
+                    "name": "w-0",
+                    "namespace": "default"
                 }
-            ],
-            "ready": True,
-            "servers": {
-                "name": "w-0",
-                "namespace": "default"
-            }
+            },
+            "compute": {
+                "constraints": {
+                    "location": [
+                        {
+                            "type": "physical",
+                            "reference": {
+                                "kind": "Servers",
+                                "name": "w-0",
+                                "namespace": "default"
+                            }
+                        }
+                    ]
+                }
+            },
+            "ready": True
         }
     }
 
-    BREAKDOWNNOSERVERS_JSON = {
+    BREAKDOWNNOSTORAGE_JSON = {
         "metadata": {
             "name": "mybreakdown"
         },
         "status": {
-            "allocationSet": [
-                {
-                    "allocationStrategy": "AllocatePerCompute",
-                    "constraints": {
-                        "labels": [
-                            "dws.cray.hpe.com/storage=Rabbit"
-                        ]
-                    },
-                    "label": "xfs",
-                    "minimumCapacity": 5000000000
-                }
-            ],
-            "ready": True,
+            "ready": False
         }
     }
+
+    BREAKDOWNNOREFERENCE_JSON = {
+        "metadata": {
+            "name": "mybreakdown"
+        },
+        "status": {
+            "storage": {
+                "allocationSets": [
+                    {
+                        "allocationStrategy": "AllocatePerCompute",
+                        "constraints": {
+                            "labels": [
+                                "dws.cray.hpe.com/storage=Rabbit"
+                            ]
+                        },
+                        "label": "xfs",
+                        "minimumCapacity": 5000000000
+                    }
+                ]
+            },
+            "ready": False
+        }
+    }
+
+    BREAKDOWNNOCOMPUTE_JSON = {
+        "metadata": {
+            "name": "mybreakdown"
+        },
+        "status": {
+            "storage": {
+                "allocationSets": [
+                    {
+                        "allocationStrategy": "AllocatePerCompute",
+                        "constraints": {
+                            "labels": [
+                                "dws.cray.hpe.com/storage=Rabbit"
+                            ]
+                        },
+                        "label": "xfs",
+                        "minimumCapacity": 5000000000
+                    }
+                ],
+                "reference": {
+                    "kind": "Servers",
+                    "name": "w-0",
+                    "namespace": "default"
+                }
+            },
+            "ready": True
+        }
+    }
+
 
     NNFNODE_JSON = {
         "metadata": {
