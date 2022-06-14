@@ -1660,7 +1660,6 @@ class DWSUtility:
                                 Console.pretty_json(assignment)
                             Console.debug(Console.WORDY, "-" * 40)
                     else:
-#                        alloc_size = round(alloc.minimumCapacity / (self.config.ost_count + self.config.ost_per_rabbit))
                         alloc_size = round(alloc.minimumCapacity / self.config.ost_count)
                         Console.debug(Console.MIN, f"type: {alloc.label}, min capacity: {alloc.minimumCapacity}, rabbits: {self.config.ost_count}, per rabbit: {self.config.ost_per_rabbit}, alloc size: {alloc_size}")
 
