@@ -52,6 +52,7 @@ class DWSUtility:
     ]
 
     HPE_NNF_CRDS = [
+        "lustrefilesystems.cray.hpe.com",
         "nnfaccesses.nnf.cray.hpe.com",
         "nnfdatamovements.nnf.cray.hpe.com",
         "nnfnodes.nnf.cray.hpe.com",
@@ -60,6 +61,10 @@ class DWSUtility:
         "nnfstorages.nnf.cray.hpe.com",
         "rsyncnodedatamovements.dm.cray.hpe.com",
         "rsynctemplates.dm.cray.hpe.com",
+    ]
+
+    NON_HPE_CRDS = [
+        ["mpijobs.kubeflow.org", "v1"],
     ]
 
     HPE_CRDS = HPE_DWS_CRDS + HPE_NNF_CRDS
@@ -357,9 +362,16 @@ class DWSUtility:
 
     def do_resource_list(self):
         """Brief list of resources from the DWS and NNF CRDs"""
-        hpe_crds = self.HPE_CRDS.copy()
+        hpe_crds = self.HPE_CRDS.copy() + self.NON_HPE_CRDS.copy()
 
-        for crd in hpe_crds:
+        for crd_elem in hpe_crds:
+            if isinstance(crd_elem, list):
+                crd = crd_elem[0]
+                apiver = crd_elem[1]
+            else:
+                crd = crd_elem
+                apiver = "v1alpha1"
+
             try:
                 crd_obj = self.dws.get_custom_resource_definition(crd)
             except:
@@ -369,7 +381,7 @@ class DWSUtility:
             parts = crd.split('.')
             group = '.'.join(parts[1:])
             try:
-                resources = self.dws.list_cluster_custom_object(parts[0], group)
+                resources = self.dws.list_cluster_custom_object(parts[0], group, apiver)
             except:
                 continue
 
