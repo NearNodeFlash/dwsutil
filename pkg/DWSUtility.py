@@ -59,12 +59,6 @@ class DWSUtility:
         "nnfnodestorages.nnf.cray.hpe.com",
         "nnfstorageprofiles.nnf.cray.hpe.com",
         "nnfstorages.nnf.cray.hpe.com",
-        "rsyncnodedatamovements.dm.cray.hpe.com",
-        "rsynctemplates.dm.cray.hpe.com",
-    ]
-
-    NON_HPE_CRDS = [
-        ["mpijobs.kubeflow.org", "v1"],
     ]
 
     HPE_CRDS = HPE_DWS_CRDS + HPE_NNF_CRDS
@@ -362,7 +356,7 @@ class DWSUtility:
 
     def do_resource_list(self):
         """Brief list of resources from the DWS and NNF CRDs"""
-        hpe_crds = self.HPE_CRDS.copy() + self.NON_HPE_CRDS.copy()
+        hpe_crds = self.HPE_CRDS.copy()
 
         for crd_elem in hpe_crds:
             if isinstance(crd_elem, list):
@@ -378,14 +372,13 @@ class DWSUtility:
                 continue
             printer_cols = self.dws.get_crd_printer_columns(crd_obj)
 
-            parts = crd.split('.')
-            group = '.'.join(parts[1:])
+            plural, _, group = crd.partition(".")
             try:
-                resources = self.dws.list_cluster_custom_object(parts[0], group, apiver)
+                resources = self.dws.list_cluster_custom_object(plural, group, apiver)
             except:
                 continue
 
-            Console.output(f"=== {parts[0]}", output_timestamp=False)
+            Console.output(f"=== {plural}", output_timestamp=False)
             if len(resources) == 0:
                 Console.output("", output_timestamp=False)
                 continue
@@ -423,12 +416,32 @@ class DWSUtility:
                             elif str(pcol.type) == 'date':
                                 val = self._age_delta(now, val)
                             row.append(val)
+
                 table.add_row(row)
 
             Console.output(table.draw(), output_timestamp=False)
             Console.output("", output_timestamp=False)
 
         return 0
+
+    def do_resource_purge(self):
+        """Purge all known custom resources"""
+        hpe_crds = self.HPE_CRDS.copy()
+
+        for crd_elem in hpe_crds:
+
+            table = texttable.Texttable(0)
+            table.set_deco(texttable.Texttable.HEADER)
+            headers = ['NAMESPACE', 'NAME', 'RESULT']
+            table.add_row(headers)
+
+            rows = self.dws.remove_custom_resource_finalizers(crd_elem)
+            if not rows:
+                continue
+
+            table.add_rows(rows)
+            Console.output(table.draw(), output_timestamp=False)
+            Console.output("", output_timestamp=False)
 
     def do_investigate_system(self):
         """Investigate the cluster configuration"""
@@ -498,7 +511,7 @@ class DWSUtility:
         elif len(wfr["spec"]["dwDirectives"]) < 1:
             facts.append("WARNING: No datawarp directives in this workflow")
 
-        if wfr["status"]["reason"] == "ERROR":
+        if "reason" in wfr["status"] and wfr["status"]["reason"] == "ERROR":
             facts.append(f"ERROR: Reason field indicates error: Message is '{wfr['status']['message']}'")
         return wfr, 0, assign_expected
 
@@ -1867,6 +1880,8 @@ class DWSUtility:
                     ret_code = self.do_investigate_system()
                 elif self.config.operation == "RESOURCELIST":
                     ret_code = self.do_resource_list()
+                elif self.config.operation == "RESOURCEPURGE":
+                    ret_code = self.do_resource_purge()
                 else:
                     self.config.usage(f"Unrecognized operation {self.config.operation} specified for {self.config.context}")
 

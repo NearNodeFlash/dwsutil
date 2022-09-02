@@ -224,6 +224,7 @@ class Config:
         self.output_usage_item_detail(1, "When context = SYSTEM")
         self.output_usage_item_detail(3, "INVESTIGATE - Analyze the current system configuration including nodes, pods, and CRDs")
         self.output_usage_item_detail(3, "RESOURCELIST - Brief list of resources from the DWS and NNF CRDs")
+        self.output_usage_item_detail(3, "RESOURCEPURGE - Purge the custom resources from the system. EXTREAMLY DANGEROUS!!!")
 
         Console.outputnotsp("\nReturn values:")
         Console.outputnotsp("   0  Operation succeeded")

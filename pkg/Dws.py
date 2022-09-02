@@ -295,6 +295,47 @@ class DWS:
 
             return crd_obj
 
+    def remove_custom_resource_finalizers(self, crd_name):
+        """Remove Custom Resources Finalizers identified by CRD Name
+
+        Parameters:
+        crd_name: Name of the CRD.  Ex: workflows.dws.cray.hpe.com
+
+        Returns:
+        list: List of results, each entry a list of [namespace, name, result]
+        """
+
+        if isinstance(crd_name, list):
+            crd_name = crd_name[0]
+        
+        plural, _, group = crd_name.partition(".")
+
+        try:
+            crd_obj = self.get_custom_resource_definition(crd_name)
+        except:
+            return None
+
+        version = crd_obj.spec.versions[0].name
+        
+        resources = self.list_cluster_custom_object(plural, group)
+
+        results = []
+        for r in resources:
+            name = r['metadata']['name']
+            namespace = r['metadata']['namespace']
+            result = "PASS"
+
+            try: 
+                with Console.trace_function():
+                    print(group, version, namespace, plural, name)
+                    body = {"metadata": {"finalizers": []}}
+                    self.k8sapi.patch_namespaced_custom_object(group, version, namespace, plural, name, body)
+            except Exception as e:
+                result = str(e)
+
+            results.append([namespace, name, result])
+        return results
+
     def get_crd_printer_columns(self, crd_obj):
             """ Retrieve the additionalPrinterColumns from a given CRD.
 
