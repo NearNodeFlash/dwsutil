@@ -83,6 +83,8 @@ class Config:
         self.showconfigonly = False
         self.context = "WFR"
         self.operation = ""
+        self.wait = True
+        self.timeout_seconds = 60
         self.dwdirectives = []
         self.dwdirectives_source = "default"
         self.exclude_rabbits = []
@@ -212,10 +214,14 @@ class Config:
         self.output_usage_item_detail(3, "ASSIGNSERVERS - Choose rabbits based on the directivebreakdown")
         self.output_usage_item_detail(3, "CREATE - Create the specified WFR")
         self.output_usage_item_detail(3, "DELETE - Delete the WFR matching the specified name (regex allowed)")
+        self.output_usage_item_detail(4, "--nowait - Do not wait for WFR to be Ready before deletion")
+        self.output_usage_item_detail(4, f"-t/--timeout <seconds> - Wait the specified number of seconds for the WFR to be Ready (default {self.timeout_seconds}")
         self.output_usage_item_detail(3, "GET - Get the named workflow resource")
         self.output_usage_item_detail(3, "INVESTIGATE - Analyze the named WFR and associated objects")
         self.output_usage_item_detail(3, "LIST - List all workflows the system knows about")
         self.output_usage_item_detail(3, "PROGRESS - Progress to the next normal desired state in the lifecycle (regex allowed)")
+        self.output_usage_item_detail(4, "--nowait - Do not wait for WFR to be Ready before progressing")
+        self.output_usage_item_detail(4, f"-t/--timeout <seconds> - Wait the specified number of seconds for the WFR to be Ready (default {self.timeout_seconds}")
         self.output_usage_item_detail(3, "PROGRESSTEARDOWN - Progress directly to 'teardown' desired state regardless of current state (regex allowed)")
         self.output_usage_item_detail(1, "When context = INVENTORY")
         self.output_usage_item_detail(3, "SHOW - Displays the nnf nodes and inventory from the cluster or inventory file")
@@ -225,6 +231,7 @@ class Config:
         self.output_usage_item_detail(3, "INVESTIGATE - Analyze the current system configuration including nodes, pods, and CRDs")
         self.output_usage_item_detail(3, "RESOURCELIST - Brief list of resources from the DWS and NNF CRDs")
         self.output_usage_item_detail(3, "RESOURCEPURGE - Purge the custom resources from the system. EXTREAMLY DANGEROUS!!!")
+        self.output_usage_item("--nowait", "Do not wait for WFR to achieve a Ready status")
 
         Console.outputnotsp("\nReturn values:")
         Console.outputnotsp("   0  Operation succeeded")
@@ -570,6 +577,10 @@ class Config:
                 Console.timestamp = False
                 continue
 
+            if arg in ["--nowait"]:
+                self.wait = False
+                continue
+
             if arg in ["--opcount"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
@@ -613,6 +624,13 @@ class Config:
 
             if arg in ["--showconfig"]:
                 self.showconfigonly = True
+                continue
+
+            if arg in ["-t", "--timeout"]:
+                arg, aidx = self.get_arg(aidx)
+                if arg is None:
+                    self.usage("A timeout value must be specified with -t")
+                self.timeout_seconds = int(arg)
                 continue
 
             if arg in ["-u", "--userid"]:
