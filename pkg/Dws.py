@@ -24,6 +24,7 @@ import os
 import sys
 
 import kubernetes.client as k8s_client
+import kubernetes.watch as k8s_watch
 
 from .Console import Console
 from .crd.Workflow import Workflow
@@ -307,16 +308,16 @@ class DWS:
 
         if isinstance(crd_name, list):
             crd_name = crd_name[0]
-        
+
         plural, _, group = crd_name.partition(".")
 
         try:
             crd_obj = self.get_custom_resource_definition(crd_name)
-        except:
+        except Exception:
             return None
 
         version = crd_obj.spec.versions[0].name
-        
+
         resources = self.list_cluster_custom_object(plural, group)
 
         results = []
@@ -325,7 +326,7 @@ class DWS:
             namespace = r['metadata']['namespace']
             result = "PASS"
 
-            try: 
+            try:
                 with Console.trace_function():
                     print(group, version, namespace, plural, name)
                     body = {"metadata": {"finalizers": []}}
@@ -337,21 +338,21 @@ class DWS:
         return results
 
     def get_crd_printer_columns(self, crd_obj):
-            """ Retrieve the additionalPrinterColumns from a given CRD.
+        """ Retrieve the additionalPrinterColumns from a given CRD.
 
-            Parameters:
-            crd_obj: An object of type V1CustomResourceDefinition.
+        Parameters:
+        crd_obj: An object of type V1CustomResourceDefinition.
 
-            Returns:
-            An list-like object of type V1CustomResourceDefinitionVersion, containing elements of type V1CustomResourceColumnDefinition.
-            """
+        Returns:
+        An list-like object of type V1CustomResourceDefinitionVersion, containing elements of type V1CustomResourceColumnDefinition.
+        """
 
-            if not isinstance(crd_obj, k8s_client.V1CustomResourceDefinition):
-                raise DWSError("Expected V1CustomResourceDefinition", 0, "")
-            spec = crd_obj.spec
-            versions = spec.versions
-            cols = versions[0].additional_printer_columns
-            return cols
+        if not isinstance(crd_obj, k8s_client.V1CustomResourceDefinition):
+            raise DWSError("Expected V1CustomResourceDefinition", 0, "")
+        spec = crd_obj.spec
+        versions = spec.versions
+        cols = versions[0].additional_printer_columns
+        return cols
 
     # Workflow Resource Routines
     def wfr_list_names(self, group="dws.cray.hpe.com", version="v1alpha1"):
@@ -374,6 +375,34 @@ class DWS:
                 return wfr_names
             except k8s_client.exceptions.ApiException as err:  # pragma: no cover
                 raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
+
+    def wfr_wait_for_ready(self, wfrname, timeout_seconds, group="dws.cray.hpe.com", version="v1alpha1"):
+        """Waits a number of seconds for a named Workflow CR to have a Ready status
+
+        Parameters:
+        wfrname : Name of the Workflow CR
+        timeout_seconds: Number of seconds to wait
+
+        Returns:
+        Workflow as JSON if Workflow resource is Ready or deleted, None otherwise
+        """
+
+        with Console.trace_function():
+            crd_api = k8s_client.CustomObjectsApi()
+            try:
+                watch = k8s_watch.Watch()
+                for event in watch.stream(crd_api.list_cluster_custom_object, group, version, "workflows", timeout_seconds=timeout_seconds):
+                    if event['type'] == 'ADDED':
+                        continue
+                    workflow = Workflow(event['object'])
+                    if workflow.name == wfrname:
+                        if event['type'] == 'DELETED':
+                            raise DWSError(f"Workflow {wfrname} deleted", DWSError.DWS_GENERAL)
+                        if workflow.is_ready:
+                            return workflow
+            except k8s_client.exceptions.ApiException as err:  # pragma: no cover
+                raise DWSError(err.body, DWSError.DWS_K8S_ERROR, err)
+            raise DWSError(f"Timeout waiting for Workflow {wfrname}", DWSError.DWS_GENERAL)
 
     def wfr_get_raw(self, wfrname, group="dws.cray.hpe.com", version="v1alpha1"):
         """Retrieve a named Workflow CR in JSON form.
@@ -671,8 +700,7 @@ class DWS:
                             "label": "xfs",
                             "allocationSize": minimumAlloc,
                             "storage": serverList
-                        }
-                    ]
+                        }]
                 }
             }
 

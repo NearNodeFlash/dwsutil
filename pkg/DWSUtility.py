@@ -368,14 +368,14 @@ class DWSUtility:
 
             try:
                 crd_obj = self.dws.get_custom_resource_definition(crd)
-            except:
+            except Exception:
                 continue
             printer_cols = self.dws.get_crd_printer_columns(crd_obj)
 
             plural, _, group = crd.partition(".")
             try:
                 resources = self.dws.list_cluster_custom_object(plural, group, apiver)
-            except:
+            except Exception:
                 continue
 
             Console.output(f"=== {plural}", output_timestamp=False)
@@ -684,6 +684,11 @@ class DWSUtility:
             wfr_list.append(name)
 
         for wfr_name in wfr_list:
+            if self.config.wait:
+                wfr = self.dws.wfr_get(wfr_name)
+                if not wfr.is_ready:
+                    Console.output(f"Waiting {self.config.timeout_seconds}s for Ready: WFR {wfr_name}")
+                    _ = self.dws.wfr_wait_for_ready(wfr_name, self.config.timeout_seconds)
             try:
                 if not self.config.preview:
                     self.dws.wfr_delete(wfr_name)
@@ -731,6 +736,12 @@ class DWSUtility:
                                     "message": "Workflow name missing"})
                     continue
                 wfr = self.dws.wfr_get(wfr_name)
+
+                if self.config.wait:
+                    if not wfr.is_ready:
+                        Console.output(f"Waiting {self.config.timeout_seconds}s for Ready: WFR {wfr_name}")
+                        wfr = self.dws.wfr_wait_for_ready(wfr_name, self.config.timeout_seconds)
+
                 desiredState = self.dws.wfr_get_next_state(wfr.state)
                 if desiredState is None:
                     if wfr.state == "teardown" and not fail_from_teardown:

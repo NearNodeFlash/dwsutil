@@ -83,6 +83,8 @@ class Config:
         self.showconfigonly = False
         self.context = "WFR"
         self.operation = ""
+        self.wait = True
+        self.timeout_seconds = 60
         self.dwdirectives = []
         self.dwdirectives_source = "default"
         self.exclude_rabbits = []
@@ -570,6 +572,10 @@ class Config:
                 Console.timestamp = False
                 continue
 
+            if arg in ["--nowait"]:
+                self.wait = False
+                continue
+
             if arg in ["--opcount"]:
                 arg, aidx = self.get_arg(aidx)
                 if arg is None:
@@ -613,6 +619,13 @@ class Config:
 
             if arg in ["--showconfig"]:
                 self.showconfigonly = True
+                continue
+
+            if arg in ["-t", "--timeout"]:
+                arg, aidx = self.get_arg(aidx)
+                if arg is None:
+                    self.usage("A timeout value must be specified with -t")
+                self.timeout_seconds = int(arg)
                 continue
 
             if arg in ["-u", "--userid"]:
