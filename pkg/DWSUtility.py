@@ -54,11 +54,14 @@ class DWSUtility:
     HPE_NNF_CRDS = [
         "lustrefilesystems.cray.hpe.com",
         "nnfaccesses.nnf.cray.hpe.com",
+        "nnfnodeecdata.nnf.cray.hpe.com",
         "nnfdatamovements.nnf.cray.hpe.com",
         "nnfnodes.nnf.cray.hpe.com",
         "nnfnodestorages.nnf.cray.hpe.com",
         "nnfstorageprofiles.nnf.cray.hpe.com",
         "nnfstorages.nnf.cray.hpe.com",
+
+        "datamovementmanagers.dm.cray.hpe.com",
     ]
 
     HPE_CRDS = HPE_DWS_CRDS + HPE_NNF_CRDS
@@ -1803,7 +1806,7 @@ class DWSUtility:
             contexts, active_context = k8s_config.list_kube_config_contexts()
             Console.debug(Console.WORDY, f"Contexts: {contexts}")
             if not contexts:
-                self.config.usage("No contexts found an no k8s config specifed")
+                self.config.usage("No contexts found and no k8s config specifed")
 
             contexts = [context['name'] for context in contexts]
             active_index = contexts.index(active_context['name'])

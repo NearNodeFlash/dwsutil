@@ -18,34 +18,34 @@ _comp_dwsutil()
 #			echo "WORD: ${w}"
 #		done
 		case "${arg}" in
-		"w") 
-			COMPREPLY+=("wfr")  
+		"w")
+			COMPREPLY+=("wfr")
 			;;
-		"i") 
-			COMPREPLY+=("inventory")  
+		"i")
+			COMPREPLY+=("inventory")
 			;;
-		"st"|"sto") 
-			COMPREPLY+=("storage")  
+		"st"|"sto")
+			COMPREPLY+=("storage")
 			;;
-		"sy"|"sys") 
-			COMPREPLY+=("system")  
+		"sy"|"sys")
+			COMPREPLY+=("system")
 			;;
-		"s") 
-			COMPREPLY+=("storage")  
-			COMPREPLY+=("system")  
+		"s")
+			COMPREPLY+=("storage")
+			COMPREPLY+=("system")
 			;;
-		"") 
-			COMPREPLY+=("wfr")  
-			COMPREPLY+=("inventory")  
-			COMPREPLY+=("storage")  
-			COMPREPLY+=("system")  
+		"")
+			COMPREPLY+=("wfr")
+			COMPREPLY+=("inventory")
+			COMPREPLY+=("storage")
+			COMPREPLY+=("system")
 			;;
 		esac
 	elif [[ "$3" == "--operation" ]]
 	then
 		context="wfr"
 		prevword=""
-		for w in ${COMP_WORDS[@]}; do
+		for w in "${COMP_WORDS[@]}"; do
 			if [[ "$prevword" == "--context" ]]; then
 				context=${w}
 			fi
@@ -53,148 +53,154 @@ _comp_dwsutil()
 		done
 		condition="${context::2}-${arg::1}"
 		case "${condition}" in
-		"wf-") 
-			COMPREPLY+=("assigncomputes")  
+		"wf-")
+			COMPREPLY+=("assigncomputes")
 			COMPREPLY+=("assignservers")
-			COMPREPLY+=("create")  
-			COMPREPLY+=("delete")  
-			COMPREPLY+=("get")  
-			COMPREPLY+=("investigate")  
-			COMPREPLY+=("list")  
-			COMPREPLY+=("progress")  
-			COMPREPLY+=("progressteardown")  
+			COMPREPLY+=("create")
+			COMPREPLY+=("delete")
+			COMPREPLY+=("get")
+			COMPREPLY+=("investigate")
+			COMPREPLY+=("list")
+			COMPREPLY+=("progress")
+			COMPREPLY+=("progressteardown")
 			;;
-		"wf-a") 
+		"wf-a")
             if [[ ${#argfull} -le 6 ]] || [[ "${argfull}" =~ .*"assignc".* ]]; then
-			    COMPREPLY+=("assigncomputes")  
+			    COMPREPLY+=("assigncomputes")
             fi
             if [[ ${#argfull} -le 6 ]] || [[ "${argfull}" =~ .*"assigns".* ]]; then
 	    		COMPREPLY+=("assignservers")
             fi
 			;;
-		"wf-c") 
-			COMPREPLY+=("create")  
+		"wf-c")
+			COMPREPLY+=("create")
 			;;
-		"wf-d") 
-			COMPREPLY+=("delete")  
+		"wf-d")
+			COMPREPLY+=("delete")
 			;;
-		"wf-g") 
-			COMPREPLY+=("get")  
+		"wf-g")
+			COMPREPLY+=("get")
 			;;
-		"wf-i") 
-			COMPREPLY+=("investigate")  
+		"wf-i")
+			COMPREPLY+=("investigate")
 			;;
-		"wf-l") 
-			COMPREPLY+=("list")  
+		"wf-l")
+			COMPREPLY+=("list")
 			;;
-		"wf-p") 
+		"wf-p")
 #			echo "ARG [$arg] [${arg::9}]"
 			if [[ "${argfull::9}" == "progresst" ]]; then
-				COMPREPLY+=("progressteardown")  
+				COMPREPLY+=("progressteardown")
 			else
-				COMPREPLY+=("progress")  
-				COMPREPLY+=("progressteardown")  
+				COMPREPLY+=("progress")
+				COMPREPLY+=("progressteardown")
 			fi
 			;;
-		"in-"|"in-s") 
-			COMPREPLY+=("show")  
+		"in-"|"in-s")
+			COMPREPLY+=("show")
 			;;
-		"st-"|"st-l") 
-			COMPREPLY+=("list")  
+		"st-"|"st-l")
+			COMPREPLY+=("list")
 			;;
-		"sy-"|"sy-i") 
-			COMPREPLY+=("investigate")  
-			COMPREPLY+=("resourcelist")  
+		"sy-"|"sy-i")
+			COMPREPLY+=("investigate")
+			COMPREPLY+=("resourcelist")
 			;;
 		esac
 	else
 		case "${arg}" in
-		"--c"|"--co") 
-			COMPREPLY+=("--context")  
+		"--c"|"--co"|"--con")
+			COMPREPLY+=("--context")
 			;;
-		"--e"|"--ex") 
-			COMPREPLY+=("--exr")  
-			COMPREPLY+=("--exc")  
+		"--e"|"--ex")
+			COMPREPLY+=("--exr")
+			COMPREPLY+=("--exc")
 			;;
-		"--m"|"--mu") 
-			COMPREPLY+=("--munge")  
+		"--m"|"--mu")
+			COMPREPLY+=("--munge")
 			;;
-		"--r"|"--re") 
-			COMPREPLY+=("--regex")  
+		"--r"|"--re")
+			COMPREPLY+=("--regex")
 			;;
-		"--s"|"--sh"|"--sho") 
-			COMPREPLY+=("--showconfig")  
+		"--s"|"--sh"|"--sho")
+			COMPREPLY+=("--showconfig")
 			;;
-		"--p"|"--pr") 
-			COMPREPLY+=("--pretty")  
+		"--p"|"--pr")
+			COMPREPLY+=("--pretty")
 			;;
-		"--a"|"--al"|"--all") 
-			COMPREPLY+=("--alloc")  
+		"--a"|"--al"|"--all")
+			COMPREPLY+=("--alloc")
 			;;
-		"--ope") 
-			COMPREPLY+=("--operation")  
+		"--ope")
+			COMPREPLY+=("--operation")
 			;;
-		"--opc") 
-			COMPREPLY+=("--opcount")  
+		"--opc")
+			COMPREPLY+=("--opcount")
 			;;
-		"--o"|"--op") 
-			COMPREPLY+=("--operation")  
-			COMPREPLY+=("--opcount")  
+		"--o"|"--op")
+			COMPREPLY+=("--operation")
+			COMPREPLY+=("--opcount")
 			;;
-		"--nam") 
-			COMPREPLY+=("--name")  
+		"--nam")
+			COMPREPLY+=("--name")
 			;;
-		"--not") 
-			COMPREPLY+=("--notimestamp")  
+		"--not")
+			COMPREPLY+=("--notimestamp")
 			;;
-		"--nod") 
-			COMPREPLY+=("--node")  
+		"--nod")
+			COMPREPLY+=("--node")
 			;;
-		"--nor") 
-			COMPREPLY+=("--node")  
+		"--nor")
+			COMPREPLY+=("--noreuse")
 			;;
-		"--no") 
-			COMPREPLY+=("--node")  
-			COMPREPLY+=("--notimestamp")  
-			COMPREPLY+=("--noreuse")  
+		"--now")
+			COMPREPLY+=("--nowait")
 			;;
-		"--n") 
-			COMPREPLY+=("--name")  
-			COMPREPLY+=("--node")  
-			COMPREPLY+=("--notimestamp")  
-			COMPREPLY+=("--noreuse")  
+		"--no")
+			COMPREPLY+=("--node")
+			COMPREPLY+=("--notimestamp")
+			COMPREPLY+=("--noreuse")
+			COMPREPLY+=("--nowait")
+			;;
+		"--n")
+			COMPREPLY+=("--name")
+			COMPREPLY+=("--node")
+			COMPREPLY+=("--notimestamp")
+			COMPREPLY+=("--noreuse")
+			COMPREPLY+=("--nowait")
 			;;
 		"--")
-			COMPREPLY+=("--alloc")  
-			COMPREPLY+=("--config")  
-			COMPREPLY+=("--exc")  
-			COMPREPLY+=("--exr")  
-			COMPREPLY+=("--inventory")  
-			COMPREPLY+=("--jobid")  
-			COMPREPLY+=("--kcfg")  
-			COMPREPLY+=("--kctx")  
-			COMPREPLY+=("--munge")  
-			COMPREPLY+=("--name")  
-			COMPREPLY+=("--node")  
-			COMPREPLY+=("--notimestamp")  
-			COMPREPLY+=("--opcount")  
-			COMPREPLY+=("--pretty")  
-			COMPREPLY+=("--regex")  
-			COMPREPLY+=("--noreuse")  
-			COMPREPLY+=("--showconfig")  
-			COMPREPLY+=("--userid")  
-			COMPREPLY+=("--groupid") 
-			COMPREPLY+=("--version")  
-			COMPREPLY+=("--wlmid")  
-			COMPREPLY+=("--context")  
-			COMPREPLY+=("--operation")  
+			COMPREPLY+=("--alloc")
+			COMPREPLY+=("--config")
+			COMPREPLY+=("--exc")
+			COMPREPLY+=("--exr")
+			COMPREPLY+=("--inventory")
+			COMPREPLY+=("--jobid")
+			COMPREPLY+=("--kcfg")
+			COMPREPLY+=("--kctx")
+			COMPREPLY+=("--munge")
+			COMPREPLY+=("--name")
+			COMPREPLY+=("--node")
+			COMPREPLY+=("--notimestamp")
+			COMPREPLY+=("--opcount")
+			COMPREPLY+=("--pretty")
+			COMPREPLY+=("--regex")
+			COMPREPLY+=("--noreuse")
+			COMPREPLY+=("--nowait")
+			COMPREPLY+=("--showconfig")
+			COMPREPLY+=("--userid")
+			COMPREPLY+=("--groupid")
+			COMPREPLY+=("--version")
+			COMPREPLY+=("--wlmid")
+			COMPREPLY+=("--context")
+			COMPREPLY+=("--operation")
 			;;
 		*)
 			if [[ "$3" == "-n" ]]; then
 				config=""
 				kconfig=""
 				prevword=""
-				for w in ${COMP_WORDS[@]}; do
+				for w in "${COMP_WORDS[@]}"; do
 					if [[ "$prevword" == "-k" ]] || [[ "$prevword" == "--kcfg" ]]; then
 						kconfig="${w}"
 					fi
@@ -204,22 +210,22 @@ _comp_dwsutil()
 					prevword=${w}
 				done
 				if [[ "$config" != "" ]] && [[ "$kconfig" == "" ]]; then
-					kconfig=`grep "config:\s*[^\s]" $config 2>/dev/null | awk '{print $2}'`
+					kconfig=$(grep "config:\s*[^\s]" "$config" 2>/dev/null | awk '{print $2}')
 				fi
 				if [[ "$kconfig" != "" ]]; then
-					kconfig=`realpath $kconfig`
+					kconfig=$(realpath "$kconfig")
 					export KUBECONFIG=$kconfig
 				fi
 				if [[ "$2" != "" ]]; then
-					result=`kubectl get workflows |grep $2 | awk '{print $1}'`
+					result=$(kubectl get workflows |grep "$2" | awk '{print $1}')
 				else
-					result=`kubectl get workflows |grep -v NAME | awk '{print $1}'`
+					result=$(kubectl get workflows |grep -v NAME | awk '{print $1}')
 				fi
 				if [ $? -ne 0 ] || [ "$result" == "" ]; then
-					COMPREPLY+=("<error pulling workflows>")  
+					COMPREPLY+=("<error pulling workflows>")
 				else
 					for names in $result; do
-						COMPREPLY+=($names)  
+						COMPREPLY+=($names)
 					done
 				fi
 			fi
