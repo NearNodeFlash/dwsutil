@@ -303,6 +303,48 @@ class DWSUtility:
             facts.append("WARNING: Any legitimate unexpected CRDs should be added to DWSUtility")
         facts.append(f"HPE custom resource definitions: {crd_count}")
 
+    def investigate_storages(self, facts):
+        """Investigate Storages in the system."""
+        Console.output("\nStorages", output_timestamp=False)
+        Console.output("-" * 50, output_timestamp=False)
+        try:
+            storages = self.dws.storage_get_all()
+
+            if Console.level_enabled(Console.WORDY):
+                Console.pretty_json(storages)
+
+            if len(storages) == 0:
+                Console.output("No Storage objects available", output_timestamp=False)
+                facts.append("WARNING: No Storage objects in system")
+            else:
+                facts.append(f"Total Storage objects: {len(storages)}")
+                Console.output(f"Total Storage objects: {len(storages)}", output_timestamp=False)
+                ready_count = len(list(filter(lambda x: x.is_ready, storages)))
+                if ready_count == 0:
+                    facts.append("WARNING: No Storage objects in system are READY")
+
+            for storage in storages:
+                Console.output(f"{'-'*20} Object: Storage default.{storage.name}{'-'*20}", output_timestamp=False)
+                storage_raw = storage.raw_storage
+                storage_raw["metadata"].pop("managedFields")
+                Console.pretty_json(storage_raw)
+                Console.output(f"{len(storage_raw['data']['access']['computes'])} Computes defined", output_timestamp=False)
+                Console.output(f"{len(storage_raw['data']['access']['servers'])} Servers defined", output_timestamp=False)
+                Console.output(f"{len(storage_raw['data']['devices'])} Devices defined", output_timestamp=False)
+                ready_count = len(list(filter(lambda x: x["status"] == "Ready", storage_raw['data']['devices'])))
+                Console.output(f"Device ready count: {ready_count}")
+                if ready_count == 0:
+                    facts.append(f"WARNING: No devices in Storage {storage.name} are READY")
+                if storage.is_ready:
+                    Console.output("Storage IS ready", output_timestamp=False)
+                else:
+                    facts.append(f"WARNING: Storage {storage.name} IS NOT READY")
+                    Console.output("Storage IS NOT ready", output_timestamp=False)
+
+        except DWSError as ex:
+            Console.output(ex.message, output_timestamp=False)
+            return None, ex.code, False
+
     def _age_delta(self, now, timestamp):
         """Calculate the time delta.
 
@@ -456,6 +498,8 @@ class DWSUtility:
 
         self.investigate_pods(facts)
 
+        self.investigate_storages(facts)
+
         self.investigate_crds(facts)
 
         # Dump summary of investigation
@@ -557,7 +601,7 @@ class DWSUtility:
                 Console.output(f"{'-'*20} Object: directiveBreakdown {bdnamespace}.{bdname} {'-'*20}", output_timestamp=False)
                 Console.pretty_json(breakdown)
 
-                # Dump out servers for this breakdown
+                # Dump out storage for this breakdown
                 if 'storage' not in breakdown['status']:
                     if assign_expected:
                         facts.append(f"WARNING: Workflow desiredState is '{wfr['spec']['desiredState']}' but no servers have been assigned")
