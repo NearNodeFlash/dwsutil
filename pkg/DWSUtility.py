@@ -327,12 +327,11 @@ class DWSUtility:
                 Console.output(f"{'-'*20} Object: Storage default.{storage.name}{'-'*20}", output_timestamp=False)
                 storage_raw = storage.raw_storage
                 storage_raw["metadata"].pop("managedFields")
+                ready_count = len(list(filter(lambda x: x["status"] == "Ready", storage_raw['data']['devices'])))
                 Console.pretty_json(storage_raw)
                 Console.output(f"{len(storage_raw['data']['access']['computes'])} Computes defined", output_timestamp=False)
                 Console.output(f"{len(storage_raw['data']['access']['servers'])} Servers defined", output_timestamp=False)
-                Console.output(f"{len(storage_raw['data']['devices'])} Devices defined", output_timestamp=False)
-                ready_count = len(list(filter(lambda x: x["status"] == "Ready", storage_raw['data']['devices'])))
-                Console.output(f"Device ready count: {ready_count}")
+                Console.output(f"{len(storage_raw['data']['devices'])} Devices defined, {ready_count} are READY", output_timestamp=False)
                 if ready_count == 0:
                     facts.append(f"WARNING: No devices in Storage {storage.name} are READY")
                 if storage.is_ready:
