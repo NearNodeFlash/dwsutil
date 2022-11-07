@@ -23,7 +23,7 @@ from ..Console import Console
 
 class Workflow:
     """Encapsulates the Workflow CR."""
-    def body_template(wfrname, wlmId, jobId, userId, groupId, dwdirectives, desiredState="proposal", group="dws.cray.hpe.com", version="v1alpha1"):
+    def body_template(wfrname, wlmId, jobId, userId, groupId, dwdirectives, desiredState="Proposal", group="dws.cray.hpe.com", version="v1alpha1"):
         body = {
             "kind": "Workflow",
             "apiVersion": f"{group}/{version}",
@@ -35,14 +35,14 @@ class Workflow:
                 "jobID": jobId,
                 "userID": userId,
                 "groupID": groupId,
-                "desiredState": "proposal",
+                "desiredState": "Proposal",
                 "dwDirectives": dwdirectives
             }
         }
 
         return body
 
-    def body_template_INVALID(wfrname, wlmId, jobId, userId, groupId, dwdirectives, desiredState="proposal", group="dws.cray.hpe.com", version="v1alpha1"):
+    def body_template_INVALID(wfrname, wlmId, jobId, userId, groupId, dwdirectives, desiredState="Proposal", group="dws.cray.hpe.com", version="v1alpha1"):
         server_obj = f"{wfrname}-0"
         body = {
             "kind": "Workflow",
@@ -55,7 +55,7 @@ class Workflow:
                 "jobID": jobId,
                 "userID": userId,
                 "groupID" : groupId,
-                "desiredState": "proposal",
+                "desiredState": "Proposal",
                 "dwDirectives": dwdirectives
             },
             "status": {
@@ -78,7 +78,7 @@ class Workflow:
                         "dwdIndex": 0,
                         "lastHB": 0,
                         "taskID": "",
-                        "watchState": "proposal"
+                        "watchState": "Proposal"
                     },
                     {
                         "completeTime": "2022-01-26T22:42:23.824622Z",
@@ -87,7 +87,7 @@ class Workflow:
                         "dwdIndex": 0,
                         "lastHB": 0,
                         "taskID": "",
-                        "watchState": "setup"
+                        "watchState": "Setup"
                     },
                     {
                         "completed": False,
@@ -95,7 +95,7 @@ class Workflow:
                         "dwdIndex": 0,
                         "lastHB": 0,
                         "taskID": "",
-                        "watchState": "pre_run"
+                        "watchState": "PreRun"
                     },
                     {
                         "completed": False,
@@ -103,7 +103,7 @@ class Workflow:
                         "dwdIndex": 0,
                         "lastHB": 0,
                         "taskID": "",
-                        "watchState": "post_run"
+                        "watchState": "PostRun"
                     },
                     {
                         "completed": False,
@@ -111,7 +111,7 @@ class Workflow:
                         "dwdIndex": 0,
                         "lastHB": 0,
                         "taskID": "",
-                        "watchState": "teardown"
+                        "watchState": "Teardown"
                     }
                 ],
                 "elapsedTimeLastState": "14m26.873268s",
@@ -119,7 +119,7 @@ class Workflow:
                 "ready": True,
                 "readyChange": "2022-01-26T22:42:23.953923Z",
                 "reason": "Completed",
-                "state": "setup"
+                "state": "Setup"
             }
         }
 

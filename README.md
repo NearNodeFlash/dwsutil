@@ -178,7 +178,7 @@ $ ./dwsutil.py --operation progressteardown -n tst1
     "preview": false,
     "results": [
         {
-            "message": "Workflow 'tst1' progressed from 'proposal' to 'teardown'",
+            "message": "Workflow 'tst1' progressed from 'Proposal' to 'Teardown'",
             "name": "tst1",
             "result": "succeeded"
         }
@@ -231,10 +231,10 @@ $ ./dwsutil.py --operation get -n wfr-demo
 ```
 ```json
 {
-    "desiredState": "proposal",
+    "desiredState": "Proposal",
     "name": "wfr-demo",
     "ready": true,
-    "state": "proposal"
+    "state": "Proposal"
 }
 ```
 
@@ -385,7 +385,7 @@ $ ./dwsutil.py --operation progress -n wfr-demo
     "preview": false,
     "results": [
         {
-            "message": "Workflow 'wfr-demo' progressed from 'proposal' to 'setup'",
+            "message": "Workflow 'wfr-demo' progressed from 'Proposal' to 'Setup'",
             "name": "wfr-demo",
             "result": "succeeded"
         }
@@ -403,7 +403,7 @@ $ ./dwsutil.py --operation progressteardown -n wfr-demo
     "preview": false,
     "results": [
         {
-            "message": "Workflow 'wfr-demo' progressed from 'setup' to 'teardown'",
+            "message": "Workflow 'wfr-demo' progressed from 'Setup' to 'Teardown'",
             "name": "wfr-demo",
             "result": "succeeded"
         }
@@ -757,17 +757,17 @@ The following attributes may be specified when creating a Workflow:
     "preview": false,
     "results": [
         {
-            "message": "Workflow 'wfr-01' progressed from 'proposal' to 'setup'",
+            "message": "Workflow 'wfr-01' progressed from 'Proposal' to 'Setup'",
             "name": "wfr-01",
             "result": "succeeded"
         },
         {
-            "message": "Workflow 'wfr-02' progressed from 'proposal' to 'setup'",
+            "message": "Workflow 'wfr-02' progressed from 'Proposal' to 'Setup'",
             "name": "wfr-02",
             "result": "succeeded"
         },
         {
-            "message": "Workflow 'wfr-03' progressed from 'proposal' to 'setup'",
+            "message": "Workflow 'wfr-03' progressed from 'Proposal' to 'Setup'",
             "name": "wfr-03",
             "result": "succeeded"
         }
@@ -782,27 +782,27 @@ The following attributes may be specified when creating a Workflow:
     "preview": false,
     "results": [
         {
-            "message": "Workflow 'wfr-01' progressed from 'setup' to 'teardown'",
+            "message": "Workflow 'wfr-01' progressed from 'Setup' to 'Teardown'",
             "name": "wfr-01",
             "result": "succeeded"
         },
         {
-            "message": "Workflow 'wfr-02' progressed from 'setup' to 'teardown'",
+            "message": "Workflow 'wfr-02' progressed from 'Setup' to 'Teardown'",
             "name": "wfr-02",
             "result": "succeeded"
         },
         {
-            "message": "Workflow 'wfr-03' progressed from 'setup' to 'teardown'",
+            "message": "Workflow 'wfr-03' progressed from 'Setup' to 'Teardown'",
             "name": "wfr-03",
             "result": "succeeded"
         },
         {
-            "message": "Workflow 'wfr-04' progressed from 'proposal' to 'teardown'",
+            "message": "Workflow 'wfr-04' progressed from 'Proposal' to 'Teardown'",
             "name": "wfr-04",
             "result": "succeeded"
         },
         {
-            "message": "Workflow 'wfr-05' progressed from 'proposal' to 'teardown'",
+            "message": "Workflow 'wfr-05' progressed from 'Proposal' to 'Teardown'",
             "name": "wfr-05",
             "result": "succeeded"
         }
@@ -944,7 +944,7 @@ $ ./dwsutil.py --operation investigate -n wfr-20220202-1636
         "uid": "b68e2093-38f9-4abd-997e-1de2e6390396"
     },
     "spec": {
-        "desiredState": "setup",
+        "desiredState": "Setup",
         "dwDirectives": [
             "#DW jobdw type=xfs capacity=5GB name=vm-test-1-raw"
         ],
@@ -972,7 +972,7 @@ $ ./dwsutil.py --operation investigate -n wfr-20220202-1636
                 "dwdIndex": 0,
                 "lastHB": 0,
                 "taskID": "",
-                "watchState": "proposal"
+                "watchState": "Proposal"
             },
             {
                 "completeTime": "2022-02-02T22:36:55.281755Z",
@@ -981,7 +981,7 @@ $ ./dwsutil.py --operation investigate -n wfr-20220202-1636
                 "dwdIndex": 0,
                 "lastHB": 0,
                 "taskID": "",
-                "watchState": "setup"
+                "watchState": "Setup"
             },
             {
                 "completed": false,
@@ -989,7 +989,7 @@ $ ./dwsutil.py --operation investigate -n wfr-20220202-1636
                 "dwdIndex": 0,
                 "lastHB": 0,
                 "taskID": "",
-                "watchState": "pre_run"
+                "watchState": "PreRun"
             },
             {
                 "completed": false,
@@ -997,7 +997,7 @@ $ ./dwsutil.py --operation investigate -n wfr-20220202-1636
                 "dwdIndex": 0,
                 "lastHB": 0,
                 "taskID": "",
-                "watchState": "post_run"
+                "watchState": "PostRun"
             },
             {
                 "completed": false,
@@ -1005,7 +1005,7 @@ $ ./dwsutil.py --operation investigate -n wfr-20220202-1636
                 "dwdIndex": 0,
                 "lastHB": 0,
                 "taskID": "",
-                "watchState": "teardown"
+                "watchState": "Teardown"
             }
         ],
         "elapsedTimeLastState": "96.633ms",
@@ -1013,7 +1013,7 @@ $ ./dwsutil.py --operation investigate -n wfr-20220202-1636
         "ready": true,
         "readyChange": "2022-02-02T22:36:55.331681Z",
         "reason": "Completed",
-        "state": "setup"
+        "state": "Setup"
     }
 }
 -------------------- Object: computes default.wfr-20220202-1636 --------------------
@@ -1135,9 +1135,9 @@ No missing objects
 
 Summary
 --------------------
-WORKFLOW: desiredState 'setup' has been achieved
-WARNING: Workflow desiredState is 'setup' but no computes have been assigned
-WARNING: Workflow desiredState is 'setup' but no servers have been assigned to 'wfr-20220202-1636-0'
+WORKFLOW: desiredState 'Setup' has been achieved
+WARNING: Workflow desiredState is 'Setup' but no computes have been assigned
+WARNING: Workflow desiredState is 'Setup' but no servers have been assigned to 'wfr-20220202-1636-0'
 ```
 
 ## Error examples
@@ -1163,7 +1163,7 @@ $ echo $?
     "preview": false,
     "results": [
         {
-            "message": "Workflow Resource named 'wfr-batch-2' must be in a state of 'teardown' to be deleted, current state is 'proposal'",
+            "message": "Workflow Resource named 'wfr-batch-2' must be in a state of 'Teardown' to be deleted, current state is 'Proposal'",
             "name": "wfr-batch-2",
             "result": "failed"
         }
@@ -1206,22 +1206,22 @@ $ echo $?
             "result": "succeeded"
         },
         {
-            "message": "Workflow Resource named 'wfr-batch-1' must be in a state of 'teardown' to be deleted, current state is 'proposal'",
+            "message": "Workflow Resource named 'wfr-batch-1' must be in a state of 'Teardown' to be deleted, current state is 'Proposal'",
             "name": "wfr-batch-1",
             "result": "failed"
         },
         {
-            "message": "Workflow Resource named 'wfr-batch-2' must be in a state of 'teardown' to be deleted, current state is 'proposal'",
+            "message": "Workflow Resource named 'wfr-batch-2' must be in a state of 'Teardown' to be deleted, current state is 'Proposal'",
             "name": "wfr-batch-2",
             "result": "failed"
         },
         {
-            "message": "Workflow Resource named 'wfr-batch-3' must be in a state of 'teardown' to be deleted, current state is 'proposal'",
+            "message": "Workflow Resource named 'wfr-batch-3' must be in a state of 'Teardown' to be deleted, current state is 'Proposal'",
             "name": "wfr-batch-3",
             "result": "failed"
         },
         {
-            "message": "Workflow Resource named 'wfr-batch-4' must be in a state of 'teardown' to be deleted, current state is 'proposal'",
+            "message": "Workflow Resource named 'wfr-batch-4' must be in a state of 'Teardown' to be deleted, current state is 'Proposal'",
             "name": "wfr-batch-4",
             "result": "failed"
         }

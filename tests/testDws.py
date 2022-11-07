@@ -75,16 +75,16 @@ class TestDWS(unittest.TestCase, TestUtil):
             # the_json["spec"]["jobID"] = TestDWS.get_counter()
 
         if args[4] in ["delete-badstate"]:
-            the_json["status"]["state"] = "proposal"
+            the_json["status"]["state"] = "Proposal"
 
         if args[4] == "notready":
-            the_json["status"]["state"] = "proposal"
-            the_json["spec"]["desiredState"] = "setup"
+            the_json["status"]["state"] = "Proposal"
+            the_json["spec"]["desiredState"] = "Setup"
             the_json["status"]["ready"] = False
 
         if args[4] == "delete-teardownstate":
-            the_json["status"]["state"] = "teardown"
-            the_json["spec"]["desiredState"] = "teardown"
+            the_json["status"]["state"] = "Teardown"
+            the_json["spec"]["desiredState"] = "Teardown"
             the_json["status"]["ready"] = True
 
         return the_json
@@ -230,18 +230,15 @@ class TestDWS(unittest.TestCase, TestUtil):
 
     def test_dws_wfr_get_next_state(self):
         # Normal transition tests
-        self.assertEqual(self.dws.wfr_get_next_state("proposal"), "setup")
-        self.assertEqual(self.dws.wfr_get_next_state("setup"), "data_in")
-        self.assertEqual(self.dws.wfr_get_next_state("data_in"), "pre_run")
-        self.assertEqual(self.dws.wfr_get_next_state("pre_run"), "post_run")
-        self.assertEqual(self.dws.wfr_get_next_state("post_run"), "data_out")
-        self.assertEqual(self.dws.wfr_get_next_state("data_out"), "teardown")
-
-        # Case insensitivity tests
-        self.assertEqual(self.dws.wfr_get_next_state("DaTa_Out"), "teardown")
+        self.assertEqual(self.dws.wfr_get_next_state("Proposal"), "Setup")
+        self.assertEqual(self.dws.wfr_get_next_state("Setup"), "DataIn")
+        self.assertEqual(self.dws.wfr_get_next_state("DataIn"), "PreRun")
+        self.assertEqual(self.dws.wfr_get_next_state("PreRun"), "PostRun")
+        self.assertEqual(self.dws.wfr_get_next_state("PostRun"), "DataOut")
+        self.assertEqual(self.dws.wfr_get_next_state("DataOut"), "Teardown")
 
         # Invalid state tests
-        self.assertIsNone(self.dws.wfr_get_next_state("teardown"))
+        self.assertIsNone(self.dws.wfr_get_next_state("Teardown"))
 
         # Bogus state tests
         with self.assertRaises(DWSError) as ex:
@@ -256,7 +253,7 @@ class TestDWS(unittest.TestCase, TestUtil):
             with patch("kubernetes.client.api.custom_objects_api.CustomObjectsApi.patch_namespaced_custom_object") as function_mock_patch:
                 function_mock_patch.side_effect = self.side_effect_wfr_get
                 function_mock_patch.return_value = TestUtil.WFR_JSON
-                self.dws.wfr_update_desired_state(test_wfr_name, "setup")
+                self.dws.wfr_update_desired_state(test_wfr_name, "Setup")
 
     def test_dws_wfr_update_desiredstate_notfound(self):
         test_wfr_name = TestUtil.random_wfr()
@@ -267,7 +264,7 @@ class TestDWS(unittest.TestCase, TestUtil):
                 function_mock_patch.side_effect = self.side_effect_wfr_desiredstate_notfound
                 function_mock_patch.return_value = TestUtil.WFR_JSON
                 with self.assertRaises(DWSError) as ex:
-                    self.dws.wfr_update_desired_state(test_wfr_name, "setup")
+                    self.dws.wfr_update_desired_state(test_wfr_name, "Setup")
                 self.assertEqual(ex.exception.code, DWSError.DWS_NOTFOUND)
 
     def test_dws_wfr_update_desiredstate_notready(self):
@@ -279,7 +276,7 @@ class TestDWS(unittest.TestCase, TestUtil):
                 function_mock_patch.side_effect = self.side_effect_wfr_get
                 function_mock_patch.return_value = TestUtil.WFR_JSON
                 with self.assertRaises(DWSError) as ex:
-                    self.dws.wfr_update_desired_state(test_wfr_name, "setup")
+                    self.dws.wfr_update_desired_state(test_wfr_name, "Setup")
                 self.assertEqual(ex.exception.code, DWSError.DWS_IMPROPERSTATE)
 
     def test_dws_wfr_update_desiredstate_notready_force(self):
@@ -290,7 +287,7 @@ class TestDWS(unittest.TestCase, TestUtil):
             with patch("kubernetes.client.api.custom_objects_api.CustomObjectsApi.patch_namespaced_custom_object") as function_mock_patch:
                 function_mock_patch.side_effect = self.side_effect_wfr_get
                 function_mock_patch.return_value = TestUtil.WFR_JSON
-                self.dws.wfr_update_desired_state(test_wfr_name, "setup", force_update=True)
+                self.dws.wfr_update_desired_state(test_wfr_name, "Setup", force_update=True)
 
     def test_dws_wfr_refresh(self):
         test_wfr_name = "wfr-refresh"

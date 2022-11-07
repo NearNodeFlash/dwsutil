@@ -540,7 +540,7 @@ class DWSUtility:
             Console.output(ex.message, output_timestamp=False)
             return None, ex.code, False
 
-        if wfr["spec"]["desiredState"] == "proposal":
+        if wfr["spec"]["desiredState"] == "Proposal":
             assign_expected = False
 
         if wfr["spec"]["desiredState"] == wfr["status"]["state"]:
@@ -790,13 +790,13 @@ class DWSUtility:
 
                 desiredState = self.dws.wfr_get_next_state(wfr.state)
                 if desiredState is None:
-                    if wfr.state == "teardown" and not fail_from_teardown:
+                    if wfr.state == "Teardown" and not fail_from_teardown:
                         if wfr.is_ready:
                             msg = f"Workflow '{wfr_name}'"\
-                                  " has achieved 'teardown'"
+                                  " has achieved 'Teardown'"
                         else:
                             msg = f"Workflow '{wfr_name}'"\
-                                  " is in 'teardown'"
+                                  " is in 'Teardown'"
 
                         results.append({"name": wfr_name,
                                         "result": "succeeded",
@@ -853,7 +853,7 @@ class DWSUtility:
         for wfr_name in wfr_list:
             try:
                 wfr = self.dws.wfr_get(wfr_name)
-                desiredState = "teardown"
+                desiredState = "Teardown"
                 Console.debug(Console.MIN, f"Progressing WFR {wfr.name}"
                               f" from {wfr.state} to {desiredState}")
                 if not self.config.preview:
