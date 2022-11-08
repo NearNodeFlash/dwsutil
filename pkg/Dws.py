@@ -457,11 +457,11 @@ class DWS:
         try:
             Console.debug(Console.MIN, f"Deleting object: {wfrname}")
             wfr = self.wfr_get(wfrname)
-            if wfr.is_ready and wfr.state == "teardown":
+            if wfr.is_ready and wfr.state == "Teardown":
                 api_response = self.k8sapi.delete_namespaced_custom_object(group, version, "default", "workflows", wfrname)
                 Console.debug(Console.WORDY, api_response)
             else:
-                msg = f"Workflow Resource named '{wfrname}' must be in a state of 'teardown' to be deleted, current state is '{wfr.state}'"
+                msg = f"Workflow Resource named '{wfrname}' must be in a state of 'Teardown' to be deleted, current state is '{wfr.state}'"
                 raise DWSError(msg, DWSError.DWS_IMPROPERSTATE, None)
         except k8s_client.exceptions.ApiException as err:  # pragma: no cover
             if err.status == 404:
@@ -486,7 +486,7 @@ class DWS:
         """
 
         with Console.trace_function():
-            body = Workflow.body_template(wfrname, wlmId, jobId, userId, groupId, dwdirectives, "proposal", group, version)
+            body = Workflow.body_template(wfrname, wlmId, jobId, userId, groupId, dwdirectives, "Proposal", group, version)
             Console.debug(Console.WORDY, body)
             # Console.pretty_json(body)
             # TODO: Get rid of the new_client stuff
@@ -515,9 +515,9 @@ class DWS:
         """
 
         # TODO: Move to class obj
-        states = ['proposal', 'setup', 'data_in', 'pre_run', 'post_run', 'data_out', 'teardown']
+        states = ['Proposal', 'Setup', 'DataIn', 'PreRun', 'PostRun', 'DataOut', 'Teardown']
         try:
-            idx = states.index(state.lower())
+            idx = states.index(state)
             if idx >= len(states)-1 or idx < 0:
                 return None
             return states[idx+1]

@@ -684,7 +684,7 @@ class TestUtil(object):
             ],
         },
         "spec": {
-            "desiredState": "proposal",
+            "desiredState": "Proposal",
             "dwDirectives": [],
             "jobID": 0,
             "userID": 0,
@@ -708,7 +708,7 @@ class TestUtil(object):
             "ready": True,
             "readyChange": "2021-12-10T22:41:25.864231Z",
             "reason": "Completed",
-            "state": "proposal"
+            "state": "Proposal"
         }
     }
 
@@ -765,7 +765,7 @@ class TestUtil(object):
                     "uid": "95826066-8062-483c-bd84-bbe164a730bb"
                 },
                 "spec": {
-                    "desiredState": "proposal",
+                    "desiredState": "Proposal",
                     "dwDirectives": [],
                     "jobID": 0,
                     "userID": 0,
@@ -783,7 +783,7 @@ class TestUtil(object):
                     "ready": True,
                     "readyChange": "2021-12-10T22:41:25.864231Z",
                     "reason": "Completed",
-                    "state": "proposal"
+                    "state": "Proposal"
                 }
             },
             {
@@ -836,7 +836,7 @@ class TestUtil(object):
                     "uid": "b8ff72a7-9a3b-452b-9ea7-82ca162e94e7"
                 },
                 "spec": {
-                    "desiredState": "proposal",
+                    "desiredState": "Proposal",
                     "dwDirectives": [],
                     "jobID": 0,
                     "userID": 0,
@@ -854,7 +854,7 @@ class TestUtil(object):
                     "ready": True,
                     "readyChange": "2021-12-10T22:46:15.770752Z",
                     "reason": "Completed",
-                    "state": "proposal"
+                    "state": "Proposal"
                 }
             }
         ]
