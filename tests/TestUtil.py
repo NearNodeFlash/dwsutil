@@ -282,7 +282,10 @@ class TestUtil(object):
 
     STORAGE_JSON = {
                 "apiVersion": "dws.cray.hpe.com/v1alpha1",
-                "data": {
+                "spec": {
+                    "state": "Enabled"
+                },
+                "status": {
                     "access": {
                         "computes": [
                             {
@@ -410,7 +413,10 @@ class TestUtil(object):
         "items": [
             {
                 "apiVersion": "dws.cray.hpe.com/v1alpha1",
-                "data": {
+                "spec": {
+                    "state": "Enabled"
+                },
+                "status": {
                     "access": {
                         "computes": [
                             {
@@ -534,7 +540,10 @@ class TestUtil(object):
             },
             {
                 "apiVersion": "dws.cray.hpe.com/v1alpha1",
-                "data": {
+                "spec": {
+                    "state": "Enabled"
+                },
+                "status": {
                     "access": {
                         "computes": [
                             {
@@ -626,7 +635,7 @@ class TestUtil(object):
                             "apiVersion": "dws.cray.hpe.com/v1alpha1",
                             "fieldsType": "FieldsV1",
                             "fieldsV1": {
-                                "f:data": {
+                                "f:status": {
                                     ".": {},
                                     "f:access": {
                                         ".": {},
