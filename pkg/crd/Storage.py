@@ -30,8 +30,6 @@ class Storage:
             if not raw_storage:
                 raise Exception("raw_storage is required")
             self._raw_storage = copy.deepcopy(raw_storage)
-            self.remaining_storage = self.capacity
-            self.allocationCount = 0
 
     @property
     def raw_storage(self):
@@ -51,32 +49,34 @@ class Storage:
     @property
     def status(self):
         """Returns the storage status."""
-        return self.raw_storage['data']['status']
+        return self.raw_storage['status']['status']
 
     @property
     def is_ready(self):
         """Returns True if the Nnfnode is Ready."""
-        return self.raw_storage['data']['status'] == "Ready"
+        return self.raw_storage['status']['status'] == "Ready"
 
     @property
     def capacity(self):
         """Returns the Storage capacity."""
-        return self.raw_storage['data']['capacity']
+        return self.raw_storage['status']['capacity']
 
     @property
     def computes(self):
         """Returns the Nnfnode servers list filtered for computes."""
         # Some test environments, such as craystack-lop, may not have computes
         # listed for every rabbit.
-        return list(filter(lambda obj: obj['name'] != self.name, self.raw_storage['data']['access'].get('computes', [])))
+        return list(filter(lambda obj: obj['name'] != self.name, self.raw_storage['status']['access'].get('computes', [])))
 
     def has_sufficient_capacity(self, requestedCapacity):
         """Returns True if Nnfnode can meet the requested capacity."""
-        return requestedCapacity < self.remaining_storage
+        # This checks against the total capacity; not the remaining capacity
+        return requestedCapacity < self.capacity
 
     def allocs_remaining(self, alloc_size):
         """Computes the remaining allocations based on current capacity."""
-        return math.floor(self.remaining_storage / alloc_size)
+        # This checks against the total capacity; not the remaining capacity
+        return math.floor(self.capacity / alloc_size)
 
     def to_json(self):
         """Return a simplified json for this Nnfnode."""
@@ -85,7 +85,7 @@ class Storage:
     def dump_summary(self):
         """Dump object summary to console."""
         Console.output("-------------------------------------")
-        Console.output("Storage: "+self.raw_storage['metadata']['name'])
-        Console.output(f"    Status: {self.raw_storage['data']['status']}")
+        Console.output("Storage: " + self.raw_storage['metadata']['name'])
+        Console.output(f"    Status: {self.status}")
         Console.output(f"    is_ready: {self.is_ready}")
-        Console.output(f"    Capacity: {self.raw_storage['data']['capacity']} ({type(self.raw_storage['data']['capacity'])}")
+        Console.output(f"    Capacity: {self.capacity}")
