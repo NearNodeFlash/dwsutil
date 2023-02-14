@@ -1,3 +1,9 @@
+# ARCHIVED
+
+This repository is archived and will not receive further updates.
+
+If you have examples of functionality provided by this repository that can not be achieved through existing kubectl commands, please open an issue on the [Near Node Flash](https://github.com/NearNodeFlash/NearNodeFlash.github.io) repository.
+
 # DWS Utility
 The DWS Utility attempts to perform basic interactivity with the DWS API endpoint.
 
